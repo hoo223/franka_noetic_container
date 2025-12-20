@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/franka/logging/logger.hpp
+fmt/format.h
+-
+memory
+-
+franka/logging/logging_sink_interface.hpp
+-
+
+../include/franka/logging/logging_sink_interface.hpp
+string
+-
+
+/root/share/libfranka/examples/utility_examples/logging_example.cpp
+iostream
+-
+franka/logging/logger.hpp
+-
+franka/logging/logging_sink_interface.hpp
+-
+

@@ -1,0 +1,11 @@
+Architecture: amd64
+Conflicts: ros-kinetic-libfranka, ros-melodic-libfranka, ros-noetic-libfranka, ros-foxy-libfranka, ros-humble-libfranka
+Depends: libpoco-dev, libfmt-dev, libeigen3-dev
+Description: libfranka built using CMake
+Maintainer: Franka Robotics GmbH
+Package: libfranka
+Priority: optional
+Section: devel
+Version: 0.15.0-1
+Installed-Size: 4708
+

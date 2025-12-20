@@ -1,0 +1,262 @@
+[
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/active_control.cpp.o -c /root/share/libfranka/src/active_control.cpp",
+  "file": "/root/share/libfranka/src/active_control.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/active_motion_generator.cpp.o -c /root/share/libfranka/src/active_motion_generator.cpp",
+  "file": "/root/share/libfranka/src/active_motion_generator.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/active_torque_control.cpp.o -c /root/share/libfranka/src/active_torque_control.cpp",
+  "file": "/root/share/libfranka/src/active_torque_control.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/control_loop.cpp.o -c /root/share/libfranka/src/control_loop.cpp",
+  "file": "/root/share/libfranka/src/control_loop.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/control_tools.cpp.o -c /root/share/libfranka/src/control_tools.cpp",
+  "file": "/root/share/libfranka/src/control_tools.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/control_types.cpp.o -c /root/share/libfranka/src/control_types.cpp",
+  "file": "/root/share/libfranka/src/control_types.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/duration.cpp.o -c /root/share/libfranka/src/duration.cpp",
+  "file": "/root/share/libfranka/src/duration.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/errors.cpp.o -c /root/share/libfranka/src/errors.cpp",
+  "file": "/root/share/libfranka/src/errors.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/exception.cpp.o -c /root/share/libfranka/src/exception.cpp",
+  "file": "/root/share/libfranka/src/exception.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/gripper.cpp.o -c /root/share/libfranka/src/gripper.cpp",
+  "file": "/root/share/libfranka/src/gripper.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/gripper_state.cpp.o -c /root/share/libfranka/src/gripper_state.cpp",
+  "file": "/root/share/libfranka/src/gripper_state.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/library_downloader.cpp.o -c /root/share/libfranka/src/library_downloader.cpp",
+  "file": "/root/share/libfranka/src/library_downloader.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/library_loader.cpp.o -c /root/share/libfranka/src/library_loader.cpp",
+  "file": "/root/share/libfranka/src/library_loader.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/load_calculations.cpp.o -c /root/share/libfranka/src/load_calculations.cpp",
+  "file": "/root/share/libfranka/src/load_calculations.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/lowpass_filter.cpp.o -c /root/share/libfranka/src/lowpass_filter.cpp",
+  "file": "/root/share/libfranka/src/lowpass_filter.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/model.cpp.o -c /root/share/libfranka/src/model.cpp",
+  "file": "/root/share/libfranka/src/model.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/model_library.cpp.o -c /root/share/libfranka/src/model_library.cpp",
+  "file": "/root/share/libfranka/src/model_library.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/network.cpp.o -c /root/share/libfranka/src/network.cpp",
+  "file": "/root/share/libfranka/src/network.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/rate_limiting.cpp.o -c /root/share/libfranka/src/rate_limiting.cpp",
+  "file": "/root/share/libfranka/src/rate_limiting.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/robot.cpp.o -c /root/share/libfranka/src/robot.cpp",
+  "file": "/root/share/libfranka/src/robot.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/robot_impl.cpp.o -c /root/share/libfranka/src/robot_impl.cpp",
+  "file": "/root/share/libfranka/src/robot_impl.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/robot_state.cpp.o -c /root/share/libfranka/src/robot_state.cpp",
+  "file": "/root/share/libfranka/src/robot_state.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/vacuum_gripper.cpp.o -c /root/share/libfranka/src/vacuum_gripper.cpp",
+  "file": "/root/share/libfranka/src/vacuum_gripper.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/vacuum_gripper_state.cpp.o -c /root/share/libfranka/src/vacuum_gripper_state.cpp",
+  "file": "/root/share/libfranka/src/vacuum_gripper_state.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/robot_model.cpp.o -c /root/share/libfranka/src/robot_model.cpp",
+  "file": "/root/share/libfranka/src/robot_model.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/logging/cout_logging_sink.cpp.o -c /root/share/libfranka/src/logging/cout_logging_sink.cpp",
+  "file": "/root/share/libfranka/src/logging/cout_logging_sink.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/logging/logger.cpp.o -c /root/share/libfranka/src/logging/logger.cpp",
+  "file": "/root/share/libfranka/src/logging/logger.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/logging/robot_state_log.cpp.o -c /root/share/libfranka/src/logging/robot_state_log.cpp",
+  "file": "/root/share/libfranka/src/logging/robot_state_log.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -Dfranka_EXPORTS -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG -fPIC   -Wall -Wextra -std=gnu++17 -o CMakeFiles/franka.dir/src/logging/robot_state_logger.cpp.o -c /root/share/libfranka/src/logging/robot_state_logger.cpp",
+  "file": "/root/share/libfranka/src/logging/robot_state_logger.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_joint_position_motion_external_control_loop.dir/generate_joint_position_motion_external_control_loop.cpp.o -c /root/share/libfranka/examples/generate_joint_position_motion_external_control_loop.cpp",
+  "file": "/root/share/libfranka/examples/generate_joint_position_motion_external_control_loop.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_consecutive_motions.dir/generate_consecutive_motions.cpp.o -c /root/share/libfranka/examples/generate_consecutive_motions.cpp",
+  "file": "/root/share/libfranka/examples/generate_consecutive_motions.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DFMT_LOCALE -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/examples_common.dir/examples_common.cpp.o -c /root/share/libfranka/examples/examples_common.cpp",
+  "file": "/root/share/libfranka/examples/examples_common.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/joint_impedance_control.dir/joint_impedance_control.cpp.o -c /root/share/libfranka/examples/joint_impedance_control.cpp",
+  "file": "/root/share/libfranka/examples/joint_impedance_control.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_joint_position_motion.dir/generate_joint_position_motion.cpp.o -c /root/share/libfranka/examples/generate_joint_position_motion.cpp",
+  "file": "/root/share/libfranka/examples/generate_joint_position_motion.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_cartesian_velocity_motion_external_control_loop.dir/generate_cartesian_velocity_motion_external_control_loop.cpp.o -c /root/share/libfranka/examples/generate_cartesian_velocity_motion_external_control_loop.cpp",
+  "file": "/root/share/libfranka/examples/generate_cartesian_velocity_motion_external_control_loop.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/motion_with_control.dir/motion_with_control.cpp.o -c /root/share/libfranka/examples/motion_with_control.cpp",
+  "file": "/root/share/libfranka/examples/motion_with_control.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_cartesian_pose_motion_external_control_loop.dir/generate_cartesian_pose_motion_external_control_loop.cpp.o -c /root/share/libfranka/examples/generate_cartesian_pose_motion_external_control_loop.cpp",
+  "file": "/root/share/libfranka/examples/generate_cartesian_pose_motion_external_control_loop.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_cartesian_pose_motion.dir/generate_cartesian_pose_motion.cpp.o -c /root/share/libfranka/examples/generate_cartesian_pose_motion.cpp",
+  "file": "/root/share/libfranka/examples/generate_cartesian_pose_motion.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -DPOCO_NO_AUTOMATIC_LIBS -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/motion_with_control_external_control_loop.dir/motion_with_control_external_control_loop.cpp.o -c /root/share/libfranka/examples/motion_with_control_external_control_loop.cpp",
+  "file": "/root/share/libfranka/examples/motion_with_control_external_control_loop.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_cartesian_velocity_motion.dir/generate_cartesian_velocity_motion.cpp.o -c /root/share/libfranka/examples/generate_cartesian_velocity_motion.cpp",
+  "file": "/root/share/libfranka/examples/generate_cartesian_velocity_motion.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/force_control.dir/force_control.cpp.o -c /root/share/libfranka/examples/force_control.cpp",
+  "file": "/root/share/libfranka/examples/force_control.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/echo_robot_state.dir/echo_robot_state.cpp.o -c /root/share/libfranka/examples/echo_robot_state.cpp",
+  "file": "/root/share/libfranka/examples/echo_robot_state.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/communication_test.dir/communication_test.cpp.o -c /root/share/libfranka/examples/communication_test.cpp",
+  "file": "/root/share/libfranka/examples/communication_test.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/cartesian_impedance_control.dir/cartesian_impedance_control.cpp.o -c /root/share/libfranka/examples/cartesian_impedance_control.cpp",
+  "file": "/root/share/libfranka/examples/cartesian_impedance_control.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/grasp_object.dir/grasp_object.cpp.o -c /root/share/libfranka/examples/grasp_object.cpp",
+  "file": "/root/share/libfranka/examples/grasp_object.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/joint_point_to_point_motion.dir/joint_point_to_point_motion.cpp.o -c /root/share/libfranka/examples/joint_point_to_point_motion.cpp",
+  "file": "/root/share/libfranka/examples/joint_point_to_point_motion.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_elbow_motion.dir/generate_elbow_motion.cpp.o -c /root/share/libfranka/examples/generate_elbow_motion.cpp",
+  "file": "/root/share/libfranka/examples/generate_elbow_motion.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_joint_velocity_motion.dir/generate_joint_velocity_motion.cpp.o -c /root/share/libfranka/examples/generate_joint_velocity_motion.cpp",
+  "file": "/root/share/libfranka/examples/generate_joint_velocity_motion.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/generate_joint_velocity_motion_external_control_loop.dir/generate_joint_velocity_motion_external_control_loop.cpp.o -c /root/share/libfranka/examples/generate_joint_velocity_motion_external_control_loop.cpp",
+  "file": "/root/share/libfranka/examples/generate_joint_velocity_motion_external_control_loop.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/print_joint_poses.dir/print_joint_poses.cpp.o -c /root/share/libfranka/examples/print_joint_poses.cpp",
+  "file": "/root/share/libfranka/examples/print_joint_poses.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples",
+  "command": "/usr/bin/c++  -DBOOST_MPL_LIMIT_LIST_SIZE=30 -DBOOST_MPL_LIMIT_VECTOR_SIZE=30 -DCOAL_BACKWARD_COMPATIBILITY_WITH_HPP_FCL -DCOAL_HAS_OCTOMAP -DCOAL_HAVE_OCTOMAP -DFMT_LOCALE -DOCTOMAP_MAJOR_VERSION=1 -DOCTOMAP_MINOR_VERSION=9 -DOCTOMAP_PATCH_VERSION=3 -DPINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION -DPINOCCHIO_WITH_HPP_FCL -DPINOCCHIO_WITH_URDFDOM -I/root/share/libfranka/examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -isystem /usr/include/eigen3 -isystem /opt/openrobots/include  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/vacuum_object.dir/vacuum_object.cpp.o -c /root/share/libfranka/examples/vacuum_object.cpp",
+  "file": "/root/share/libfranka/examples/vacuum_object.cpp"
+},
+{
+  "directory": "/root/share/libfranka/build/examples/utility_examples",
+  "command": "/usr/bin/c++  -DFMT_LOCALE -I/root/share/libfranka/examples/utility_examples/include -I/root/share/libfranka/include -I/root/share/libfranka/common/include -I/root/share/libfranka/examples/include -isystem /usr/include/eigen3  -O3 -DNDEBUG   -Wall -Wextra -std=gnu++17 -o CMakeFiles/logging_example.dir/logging_example.cpp.o -c /root/share/libfranka/examples/utility_examples/logging_example.cpp",
+  "file": "/root/share/libfranka/examples/utility_examples/logging_example.cpp"
+}
+]
