@@ -5,7 +5,8 @@ sudo apt install -y \
     ros-noetic-boost-sml \
     ros-noetic-ros-control \
     ros-noetic-ros-controllers \
-    ros-noetic-moveit
+    ros-noetic-moveit \
+    apt install ros-noetic-pinocchio
 
 CURRENT_DIR=$(pwd)
 mkdir -p catkin_ws/src && cd catkin_ws/src
@@ -15,3 +16,6 @@ git clone -b ros1-legacy https://github.com/realsenseai/realsense-ros.git
 cd .. && catkin_make && source devel/setup.bash
 
 cd "$CURRENT_DIR"
+
+# franka_easy_handeye
+pip install transforms3d

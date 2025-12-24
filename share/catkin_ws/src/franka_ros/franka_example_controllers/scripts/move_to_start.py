@@ -11,18 +11,19 @@ from control_msgs.msg import FollowJointTrajectoryAction, \
 
 ros.init_node('move_to_start')
 
-action = ros.resolve_name('~follow_joint_trajectory')
+action = ros.resolve_name('~follow_joint_trajectory') # /effort_joint_trajectory_controller/follow_joint_trajectory
+print(action)
 client = SimpleActionClient(action, FollowJointTrajectoryAction)
 ros.loginfo("move_to_start: Waiting for '" + action + "' action to come up")
 client.wait_for_server()
 
-param = ros.resolve_name('~joint_pose')
+param = ros.resolve_name('~joint_pose') # /move_to_start/joint_pose
 pose = ros.get_param(param, None)
 if pose is None:
     ros.logerr('move_to_start: Could not find required parameter "' + param + '"')
     sys.exit(1)
 
-topic = ros.resolve_name('~joint_states')
+topic = ros.resolve_name('~joint_states') # /franka_state_controller/joint_states
 ros.loginfo("move_to_start: Waiting for message on topic '" + topic + "'")
 joint_state = ros.wait_for_message(topic, JointState)
 initial_pose = dict(zip(joint_state.name, joint_state.position))

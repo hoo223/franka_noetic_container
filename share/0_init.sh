@@ -1,6 +1,6 @@
 echo "=== 필수 패키지 설치 ==="
 apt update
-apt install -y lsb-release micro git curl build-essential cmake ca-certificates
+apt install -y lsb-release micro git curl build-essential cmake ca-certificates python3-pip python3-catkin-tools
 
 echo "=== 인증서 업데이트 ==="
 update-ca-certificates

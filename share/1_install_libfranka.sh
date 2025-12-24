@@ -4,6 +4,7 @@ set -e  # 에러 발생 시 즉시 스크립트 중단
 apt update
 apt install -y libpoco-dev libeigen3-dev libfmt-dev
 
+
 sudo mkdir -p /etc/apt/keyrings
 curl -fsSL http://robotpkg.openrobots.org/packages/debian/robotpkg.asc | sudo tee /etc/apt/keyrings/robotpkg.asc
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/robotpkg.asc] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" | sudo tee /etc/apt/sources.list.d/robotpkg.list

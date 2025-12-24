@@ -60,27 +60,45 @@ joint_impedance_example_controller:
         - $(arg arm_id)_joint5
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
-    k_gains:
-        - 600.0
-        - 600.0
-        - 600.0
-        - 600.0
-        - 250.0
-        - 150.0
-        - 50.0
-    d_gains:
-        - 50.0
-        - 50.0
-        - 50.0
-        - 20.0
-        - 20.0
-        - 20.0
-        - 10.0
+    # k_gains:
+    #     - 600.0
+    #     - 600.0
+    #     - 600.0
+    #     - 600.0
+    #     - 250.0
+    #     - 150.0
+    #     - 50.0
+    # d_gains:
+    #     - 50.0
+    #     - 50.0
+    #     - 50.0
+    #     - 20.0
+    #     - 20.0
+    #     - 20.0
+    #     - 10.0
     radius: 0.1
     acceleration_time: 2.0
     vel_max: 0.15
     publish_rate: 10.0
     coriolis_factor: 1.0
+    k_gains:
+        - 300.0  # 기존 600 -> 좀 더 부드럽게 (자세 유지는 가능)
+        - 300.0  # 기존 600
+        - 300.0  # 기존 600
+        - 300.0  # 기존 600
+        - 100.0  # 기존 250 -> 과감하게 줄임 (유연성 확보)
+        - 70.0   # 기존 150 -> 과감하게 줄임
+        - 20.0   # 기존 50  -> 손끝은 아주 부드럽게 (손가락으로 밀면 밀릴 정도)
+    d_gains:
+        # K를 줄이면 진동을 막기 위해 D(댐핑)도 비율(sqrt(K))에 맞춰 줄여야 합니다.
+        # D가 너무 크면 로봇이 뻑뻑하고 반응이 느려집니다.
+        - 35.0   # 기존 50
+        - 35.0   # 기존 50
+        - 35.0   # 기존 50
+        - 15.0   # 기존 20
+        - 10.0   # 기존 20
+        - 10.0   # 기존 20
+        - 5.0    # 기존 10
 
 cartesian_impedance_example_controller:
     type: franka_example_controllers/CartesianImpedanceExampleController

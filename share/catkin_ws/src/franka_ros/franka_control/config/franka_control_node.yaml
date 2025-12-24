@@ -17,9 +17,42 @@ cutoff_frequency: 100
 # Internal controller for motion generators [joint_impedance|cartesian_impedance]
 internal_controller: joint_impedance
 # Used to decide whether to enforce realtime mode [enforce|ignore]
-realtime_config: enforce
+realtime_config: ignore
 # Configure the initial defaults for the collision behavior reflexes.
+
+## 적당한 접촉 허용 (Peg-in-Hole 권장)
 collision_config:
+  # 관절 토크 (Joint Torque) [Nm]
+  # 하부 관절(1~4)은 힘이 세므로 60~80, 상부 관절(5~7)은 약하므로 20~30 정도가 적당합니다.
+  lower_torque_thresholds_acceleration: [80.0, 80.0, 80.0, 80.0, 30.0, 30.0, 30.0]
+  upper_torque_thresholds_acceleration: [80.0, 80.0, 80.0, 80.0, 30.0, 30.0, 30.0]
+  lower_torque_thresholds_nominal: [80.0, 80.0, 80.0, 80.0, 30.0, 30.0, 30.0]
+  upper_torque_thresholds_nominal: [80.0, 80.0, 80.0, 80.0, 30.0, 30.0, 30.0]
+
+  # 카르테시안 힘 (Cartesian Force) [N, N, N, Nm, Nm, Nm]
+  # 20N -> 60N으로 상향 (약 6kg의 힘까지 허용). 
+  # 손으로 꾹 누르는 정도는 버티고, 몸을 실어 밀면 멈춥니다.
+  lower_force_thresholds_acceleration: [60.0, 60.0, 60.0, 50.0, 50.0, 50.0]
+  upper_force_thresholds_acceleration: [60.0, 60.0, 60.0, 50.0, 50.0, 50.0]
+  lower_force_thresholds_nominal: [60.0, 60.0, 60.0, 50.0, 50.0, 50.0]
+  upper_force_thresholds_nominal: [60.0, 60.0, 60.0, 50.0, 50.0, 50.0]
+
+## 조금 더 안전하게 (Hand-Guiding / 가벼운 작업용)
+# collision_config:
+  # # 관절 토크: 1~4번 관절은 40, 손목은 15~20 유지
+  # lower_torque_thresholds_acceleration: [40.0, 40.0, 40.0, 40.0, 20.0, 20.0, 20.0]
+  # upper_torque_thresholds_acceleration: [40.0, 40.0, 40.0, 40.0, 20.0, 20.0, 20.0]
+  # lower_torque_thresholds_nominal: [40.0, 40.0, 40.0, 40.0, 20.0, 20.0, 20.0]
+  # upper_torque_thresholds_nominal: [40.0, 40.0, 40.0, 40.0, 20.0, 20.0, 20.0]
+
+  # # 카르테시안 힘: 20N -> 40N (약 4kg의 힘까지 허용)
+  # lower_force_thresholds_acceleration: [40.0, 40.0, 40.0, 35.0, 35.0, 35.0]
+  # upper_force_thresholds_acceleration: [40.0, 40.0, 40.0, 35.0, 35.0, 35.0]
+  # lower_force_thresholds_nominal: [40.0, 40.0, 40.0, 35.0, 35.0, 35.0]
+  # upper_force_thresholds_nominal: [40.0, 40.0, 40.0, 35.0, 35.0, 35.0]
+
+## Original Version
+# collision_config:
   # lower_torque_thresholds_acceleration: [20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0]  # [Nm]
   # upper_torque_thresholds_acceleration: [20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0]  # [Nm]
   # lower_torque_thresholds_nominal: [20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0]  # [Nm]
@@ -27,22 +60,4 @@ collision_config:
   # lower_force_thresholds_acceleration: [20.0, 20.0, 20.0, 25.0, 25.0, 25.0]  # [N, N, N, Nm, Nm, Nm]
   # upper_force_thresholds_acceleration: [20.0, 20.0, 20.0, 25.0, 25.0, 25.0]  # [N, N, N, Nm, Nm, Nm]
   # lower_force_thresholds_nominal: [20.0, 20.0, 20.0, 25.0, 25.0, 25.0]  # [N, N, N, Nm, Nm, Nm]
-  # upper_force_thresholds_nominal: [20.0, 20.0, 20.0, 25.0, 25.0, 25.0]  # [N, N, N, Nm, Nm, Nm]\
-  # 
-  # lower_torque_thresholds_acceleration: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]  # [Nm]
-  # upper_torque_thresholds_acceleration: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]  # [Nm]
-  # lower_torque_thresholds_nominal: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]  # [Nm]
-  # upper_torque_thresholds_nominal: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]  # [Nm]
-  # lower_force_thresholds_acceleration: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]  # [N, N, N, Nm, Nm, Nm]
-  # upper_force_thresholds_acceleration: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]  # [N, N, N, Nm, Nm, Nm]
-  # lower_force_thresholds_nominal: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]  # [N, N, N, Nm, Nm, Nm]
-  # upper_force_thresholds_nominal: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]  # [N, N, N, Nm, Nm, Nm]
-  # 
-  lower_torque_thresholds_acceleration: [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0]  # [Nm]
-  upper_torque_thresholds_acceleration: [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0]  # [Nm]
-  lower_torque_thresholds_nominal: [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0]  # [Nm]
-  upper_torque_thresholds_nominal: [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0]  # [Nm]
-  lower_force_thresholds_acceleration: [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0]  # [N, N, N, Nm, Nm, Nm]
-  upper_force_thresholds_acceleration: [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0]  # [N, N, N, Nm, Nm, Nm]
-  lower_force_thresholds_nominal: [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0]  # [N, N, N, Nm, Nm, Nm]
-  upper_force_thresholds_nominal: [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0]  # [N, N, N, Nm, Nm, Nm]
+  # upper_force_thresholds_nominal: [20.0, 20.0, 20.0, 25.0, 25.0, 25.0]  # [N, N, N, Nm, Nm, Nm]
