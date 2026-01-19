@@ -1,6 +1,20 @@
+# $(arg arm_id)_arm: &arm_config
+#   kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
+#   kinematics_solver_search_resolution: 0.005
+#   kinematics_solver_timeout: 0.05
+
+# $(arg arm_id)_manipulator: *arm_config
+
 $(arg arm_id)_arm: &arm_config
-  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
-  kinematics_solver_search_resolution: 0.005
+  # 1. 솔버 플러그인을 TRAC-IK로 변경
+  kinematics_solver: trac_ik_kinematics_plugin/TRAC_IKKinematicsPlugin
+  
+  # 2. 타임아웃 유지 (0.05초는 TRAC-IK가 해를 찾기에 충분히 넉넉한 시간입니다)
   kinematics_solver_timeout: 0.05
+  
+  # 3. TRAC-IK 전용 옵션 추가 (선택 사항이나 권장)
+  # solve_type은 'Distance'로 설정하면 현재 포즈에서 관절 이동이 가장 적은 해를 찾습니다.
+  solve_type: Distance
+  kinematics_solver_epsilon: 1e-5
 
 $(arg arm_id)_manipulator: *arm_config

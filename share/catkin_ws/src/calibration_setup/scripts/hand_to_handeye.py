@@ -9,16 +9,22 @@ import numpy as np
 # 1. Hand-Eye Calibration 결과 입력
 # (제공해주신 panda_link0 -> camera 변환 값)
 # ==========================================
-# Translation (x, y, z)
-# Rotation Quaternion (x, y, z, w)
-# calib_trans = [0.080, -0.078, 0.025]
-# calib_quat = [-0.112, 0.272, 0.886, -0.358]
+# [INFO] [1768179008.150853]: Computed results panda_hand_to_camera_color_optical_frame
+# [INFO] [1768179008.152037]: matrix: 
+# [[-0.71585497  0.57306553 -0.39893304  0.08015465]
+#  [-0.69822689 -0.58294937  0.41551082 -0.07293879]
+#  [ 0.00555716  0.57599126  0.81743696  0.02308091]
+#  [ 0.          0.          0.          1.        ]]
+# [INFO] [1768179008.153110]: pos: [ 0.08015465 -0.07293879  0.02308091], quat: [ 0.11141975 -0.28083297 -0.88264394  0.36008076]
 
-# calib_trans = [0.080, -0.07, 0.030]
-# calib_quat = [-0.116, 0.281, 0.885, -0.353]
 
-calib_trans = [0.063, -0.070, 0.037]
-calib_quat = [-0.120, 0.285, 0.885, -0.349]
+calib_trans = [ 0.08015465, -0.07293879,  0.02308091]
+calib_quat = [ 0.11141975, -0.28083297, -0.88264394,  0.36008076]
+
+T_hc = np.array([[-0.71585497,  0.57306553, -0.39893304,  0.08015465],
+                 [-0.69822689, -0.58294937,  0.41551082, -0.07293879],
+                 [ 0.00555716,  0.57599126,  0.81743696,  0.02308091],
+                 [ 0.        ,  0.        ,  0.        ,  1.        ]])
 
 def get_matrix(trans, quat):
     """Translation 리스트와 Quaternion 리스트를 4x4 행렬로 변환"""
@@ -30,7 +36,7 @@ def main():
     rospy.init_node('camera_to_base_publisher')
 
     # 1. Base -> Camera 행렬 생성 (T_bc)
-    T_hc = get_matrix(calib_trans, calib_quat)
+    # T_hc = get_matrix(calib_trans, calib_quat)
 
     # 2. 역행렬 계산: Camera -> Base (T_cb)
     # 우리가 송출할 TF의 부모는 카메라이고 자식은 베이스이므로 역변환이 필요합니다.

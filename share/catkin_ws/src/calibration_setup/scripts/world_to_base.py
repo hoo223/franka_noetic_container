@@ -3,32 +3,36 @@ import rospy
 import tf
 import tf2_ros
 import geometry_msgs.msg
+import numpy as np
 import math
 
 def main():
     rospy.init_node('world_to_base_broadcaster')
 
-    # ==========================================
-    # 1. 실측 데이터 입력 (단위: mm, degree)
-    # ==========================================
-    # measured_x_mm = 128.39
-    # measured_y_mm = 116.023 + 2
-    # measured_z_mm = 0.0      # (주의) 어댑터 플레이트 두께가 있다면 여기에 입력하세요!
-    # measured_yaw_deg = 43.377 + 1
-
-    measured_x_mm = 128.084
-    measured_y_mm = 114.584
-    measured_z_mm = 0.0      # (주의) 어댑터 플레이트 두께가 있다면 여기에 입력하세요!
-    measured_yaw_deg = 43.404 + 0.9
+    # 1. SVD로 계산된 4x4 행렬 (예시 데이터)
+    # 실제로는 Step 1 코드의 결과물인 T_B_W를 여기에 넣으세요.
+    T = np.array([
+        [7.15082352e-01, -6.99037268e-01, 2.03199652e-03, 1.27435003e-01],
+        [6.99039845e-01, 7.15081960e-01, -1.04173968e-03, 1.15195809e-01],
+        [-7.24829190e-04, 2.16537619e-03, 9.99997393e-01, -7.63607122e-10],
+        [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
+    ])
 
     # ==========================================
-    # 2. 단위 변환 (ROS 표준: meter, radian)
+    # 추가: Yaw 회전 오프셋 설정 (단위: Degree)
     # ==========================================
-    x_m = measured_x_mm / 1000.0
-    y_m = measured_y_mm / 1000.0
-    z_m = measured_z_mm / 1000.0
-    
-    yaw_rad = math.radians(measured_yaw_deg) # degree -> radian 변환
+    # 예: 계산된 결과보다 0.5도 더 회전시키고 싶을 때
+    yaw_offset_deg = 0.0
+    yaw_offset_rad = math.radians(yaw_offset_deg)
+
+    # Z축 기준 회전 행렬 생성
+    T_offset = tf.transformations.rotation_matrix(yaw_offset_rad, (0, 0, 1))
+
+    # 기존 행렬에 오프셋 적용 (로봇 베이스 좌표계 기준 회전)
+    T_final = np.dot(T, T_offset)
+
+    # 2. 최종 행렬에서 Quaternion 추출
+    quat = tf.transformations.quaternion_from_matrix(T_final)
 
     # ==========================================
     # 3. TF 메시지 생성
@@ -40,14 +44,14 @@ def main():
     static_transformStamped.header.frame_id = "world"       # 부모 프레임
     static_transformStamped.child_frame_id = "panda_link0"  # 자식 프레임 (로봇 베이스)
 
-    # Translation 적용
-    static_transformStamped.transform.translation.x = x_m
-    static_transformStamped.transform.translation.y = y_m
-    static_transformStamped.transform.translation.z = z_m
+    static_transformStamped.transform.translation.x = T[0, 3]
+    static_transformStamped.transform.translation.y = T[1, 3]
+    static_transformStamped.transform.translation.z = T[2, 3]
 
-    # Rotation (Euler -> Quaternion) 적용
-    # 평면 위에 놓여 있으므로 Roll, Pitch는 0으로 가정
-    quat = tf.transformations.quaternion_from_euler(0, 0, yaw_rad)
+    static_transformStamped.transform.rotation.x = quat[0]
+    static_transformStamped.transform.rotation.y = quat[1]
+    static_transformStamped.transform.rotation.z = quat[2]
+    static_transformStamped.transform.rotation.w = quat[3]
 
     static_transformStamped.transform.rotation.x = quat[0]
     static_transformStamped.transform.rotation.y = quat[1]
@@ -60,8 +64,8 @@ def main():
     broadcaster.sendTransform(static_transformStamped)
     
     rospy.loginfo("=== World -> Panda Base TF Published ===")
-    rospy.loginfo(f"Translation: x={x_m:.4f}m, y={y_m:.4f}m, z={z_m:.4f}m")
-    rospy.loginfo(f"Rotation: {measured_yaw_deg} deg ({yaw_rad:.4f} rad)")
+    # rospy.loginfo(f"Translation: x={x_m:.4f}m, y={y_m:.4f}m, z={z_m:.4f}m")
+    # rospy.loginfo(f"Rotation: {measured_yaw_deg} deg ({yaw_rad:.4f} rad)")
 
     rospy.spin()
 

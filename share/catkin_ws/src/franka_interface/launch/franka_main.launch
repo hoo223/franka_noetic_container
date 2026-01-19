@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+
+<launch>
+  <arg name="robot_ip" default="172.16.0.2" />
+  <arg name="robot" default="panda" doc="choose your robot. Possible values: [panda, fr3]"/>
+  <arg name="arm_id" default="$(arg robot)" />
+  <arg name="load_gripper" default="true" />
+  <arg name="spmouse" default="true" />
+  <arg name="publish_rate" default="30" />
+  <arg name="use_rviz" default="true" />
+
+  <!-- Launch real-robot control -->
+  <include file="$(find panda_moveit_config)/launch/franka_control.launch" pass_all_args="true" />
+
+  <!-- Cartesian Impedance Controller -->
+  <node name="cartesian_impedance_controller" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="load cartesian_impedance_example_controller" />
+  <node name="cartesian_pose_controller" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="load cartesian_pose_controller" />
+
+  <!-- Visualization -->
+  <include file="$(find franka_interface)/launch/franka_visualization.launch" pass_all_args="true" />
+
+</launch>

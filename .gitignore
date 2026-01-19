@@ -12,3 +12,5 @@ share/assets/
 share/catkin_ws/.catkin_tools/
 
 share/catkin_ws/log.txt
+
+legacy_ws/

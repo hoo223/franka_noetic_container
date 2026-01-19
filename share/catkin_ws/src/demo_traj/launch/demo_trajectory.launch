@@ -1,0 +1,4 @@
+<launch>
+    <node name="demo_processor" pkg="demo_traj" type="demo_processor_node.py" output="screen">
+    </node>
+</launch>

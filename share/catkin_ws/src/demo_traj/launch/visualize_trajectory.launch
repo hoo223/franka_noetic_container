@@ -1,0 +1,6 @@
+<launch>
+    <node name="trajectory_publisher" pkg="demo_traj" type="trajectory_publisher.py" output="screen">
+    </node>
+
+    <node name="rviz" pkg="rviz" type="rviz" args="" required="true" />
+</launch>

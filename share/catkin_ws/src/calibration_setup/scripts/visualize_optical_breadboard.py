@@ -34,11 +34,19 @@ CUSTOM_COLOR = [0.15, 0.15, 0.15, 1.0]
 
 import tf.transformations
 
+
+#!/usr/bin/env python3
+import rospy
+from visualization_msgs.msg import Marker
+import tf.transformations
+
+# ... [사용자 설정 구역 동일] ...
+
 def main():
     rospy.init_node('optical_breadboard_visualizer')
-    pub = rospy.Publisher('optical_breadboard_marker', Marker, queue_size=10)
+    # latched=True 설정이 핵심입니다!
+    pub = rospy.Publisher('optical_breadboard_marker', Marker, queue_size=1, latch=True)
     
-    # 마커 설정
     marker = Marker()
     marker.header.frame_id = "world"
     marker.ns = "breadboard_mesh"
@@ -46,44 +54,82 @@ def main():
     marker.type = Marker.MESH_RESOURCE
     marker.action = Marker.ADD
     
-    # 1. 파일 경로 입력
+    # [설정 부분 동일]
     marker.mesh_resource = MESH_PATH
     marker.mesh_use_embedded_materials = USE_EMBEDDED_COLOR
-
-    # 2. 위치 설정
-    marker.pose.position.x = BOARD_POS[0]
-    marker.pose.position.y = BOARD_POS[1]
-    marker.pose.position.z = BOARD_POS[2]
-
-    # 3. 회전 설정 (Euler -> Quaternion 변환)
+    marker.pose.position.x, marker.pose.position.y, marker.pose.position.z = BOARD_POS
     q = tf.transformations.quaternion_from_euler(BOARD_RPY[0], BOARD_RPY[1], BOARD_RPY[2])
-    marker.pose.orientation.x = q[0]
-    marker.pose.orientation.y = q[1]
-    marker.pose.orientation.z = q[2]
-    marker.pose.orientation.w = q[3]
+    marker.pose.orientation.x, marker.pose.orientation.y, marker.pose.orientation.z, marker.pose.orientation.w = q
+    marker.scale.x = marker.scale.y = marker.scale.z = MESH_SCALE
+    marker.color.r, marker.color.g, marker.color.b, marker.color.a = CUSTOM_COLOR
 
-    # 4. 크기(Scale) 설정
-    marker.scale.x = MESH_SCALE
-    marker.scale.y = MESH_SCALE
-    marker.scale.z = MESH_SCALE
+    # 중요: lifetime을 0으로 설정 (0은 영구 유지를 의미)
+    marker.lifetime = rospy.Duration(0)
 
-    # 5. 색상 설정 (Embedded Color가 False일 때만 적용됨)
-    marker.color.r = CUSTOM_COLOR[0]
-    marker.color.g = CUSTOM_COLOR[1]
-    marker.color.b = CUSTOM_COLOR[2]
-    marker.color.a = CUSTOM_COLOR[3]
-
-    # 주기적으로 Publish
-    rate = rospy.Rate(1.0) # 1Hz
-    rospy.loginfo(f"Publishing CAD Mesh: {MESH_PATH}")
+    # 딱 한 번 발행
+    marker.header.stamp = rospy.Time.now()
+    pub.publish(marker)
     
-    while not rospy.is_shutdown():
-        marker.header.stamp = rospy.Time.now()
-        pub.publish(marker)
-        rate.sleep()
+    rospy.loginfo(f"Mesh Marker published once. Node idling...")
+    
+    # 노드 유지 (CPU 점유율 0%)
+    rospy.spin()
 
 if __name__ == '__main__':
-    try:
-        main()
-    except rospy.ROSInterruptException:
-        pass
+    main()
+
+# def main():
+#     rospy.init_node('optical_breadboard_visualizer')
+#     pub = rospy.Publisher('optical_breadboard_marker', Marker, queue_size=10)
+    
+#     # 마커 설정
+#     marker = Marker()
+#     marker.header.frame_id = "world"
+#     marker.ns = "breadboard_mesh"
+#     marker.id = 0
+#     marker.type = Marker.MESH_RESOURCE
+#     marker.action = Marker.ADD
+    
+#     # 1. 파일 경로 입력
+#     marker.mesh_resource = MESH_PATH
+#     marker.mesh_use_embedded_materials = USE_EMBEDDED_COLOR
+
+#     # 2. 위치 설정
+#     marker.pose.position.x = BOARD_POS[0]
+#     marker.pose.position.y = BOARD_POS[1]
+#     marker.pose.position.z = BOARD_POS[2]
+
+#     # 3. 회전 설정 (Euler -> Quaternion 변환)
+#     q = tf.transformations.quaternion_from_euler(BOARD_RPY[0], BOARD_RPY[1], BOARD_RPY[2])
+#     marker.pose.orientation.x = q[0]
+#     marker.pose.orientation.y = q[1]
+#     marker.pose.orientation.z = q[2]
+#     marker.pose.orientation.w = q[3]
+
+#     # 4. 크기(Scale) 설정
+#     marker.scale.x = MESH_SCALE
+#     marker.scale.y = MESH_SCALE
+#     marker.scale.z = MESH_SCALE
+
+#     # 5. 색상 설정 (Embedded Color가 False일 때만 적용됨)
+#     marker.color.r = CUSTOM_COLOR[0]
+#     marker.color.g = CUSTOM_COLOR[1]
+#     marker.color.b = CUSTOM_COLOR[2]
+#     marker.color.a = CUSTOM_COLOR[3]
+
+#     # 주기적으로 Publish
+#     rate = rospy.Rate(1.0) # 1Hz
+#     rospy.loginfo(f"Publishing CAD Mesh: {MESH_PATH}")
+    
+#     while not rospy.is_shutdown():
+#         marker.header.stamp = rospy.Time.now()
+#         pub.publish(marker)
+#         rate.sleep()
+
+# if __name__ == '__main__':
+#     try:
+#         main()
+#     except rospy.ROSInterruptException:
+#         pass
+
+    

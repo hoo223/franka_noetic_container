@@ -1,0 +1,5 @@
+<?xml version="1.0" ?>
+
+<launch>
+  <node pkg="franka_interface" type="move_to_grasp.py" name="move_to_grasp_controller" output="log"/>
+</launch>

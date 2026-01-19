@@ -173,3 +173,9 @@ teleop_joint_pd_example_controller:
        ddq_max_lower: [0.8, 0.8, 0.8, 0.8, 10.0, 10.0, 10.0] # [rad/s^2]
        ddq_max_upper: [6.0, 6.0, 6.0, 6.0, 15.0, 20.0, 20.0] # [rad/s^2]
        contact_force_threshold: 5.0 # [N]
+
+# CartesianPoseController
+cartesian_pose_controller:
+  type: franka_example_controllers/CartesianPoseController
+  arm_id: $(arg arm_id)
+  filter_params: 0.02 # 값이 작을수록 부드럽지만 느리게 추종, 클수록 반응은 빠르나 급격함
