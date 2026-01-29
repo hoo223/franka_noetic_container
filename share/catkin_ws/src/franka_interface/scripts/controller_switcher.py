@@ -38,6 +38,7 @@ SELECT_PEG = 'p'
 OPEN_GRIPPER = 'o'
 CLOSE_GRIPPER = 'c'
 GRASPING = 'g'
+REGISTER_FRAMES = 'f'
 
 SET_VIEWPOINT = '0'
 MOVE_TO_HOME = '1'
@@ -50,6 +51,8 @@ MOVE_TO_GRASP = '7'
 GENERATE_TRAJECTORY = '8'
 APPROACH = '9'
 
+PEG_LIST = [9, 11, 12, 17]
+
 MODE_DICT = {
     'a': 'MOVEIT',
     's': 'CARTESIAN_IMPEDANCE',
@@ -61,6 +64,7 @@ MODE_DICT = {
     'o': 'OPEN_GRIPPER',
     'c': 'CLOSE_GRIPPER',
     'g': 'GRASPING',
+    'f': 'REGISTER_FRAMES',
     '0': 'SET_VIEWPOINT',
     '1': 'MOVE_TO_HOME',
     '2': 'MOVE_TO_VIEWPOINT',
@@ -73,7 +77,55 @@ MODE_DICT = {
     '9': 'APPROACH',
 }
 
+
+
+insert_center_dict = {
+    "part11": {
+        "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": -0.02
+        },
+        "orientation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0,
+            "w": 1.0
+        }
+    }
+}
+
 grasp_pose_dict = { # wrt peg object frame
+    "part7": { # wrt object_part7
+        # - Translation: [-0.026, -0.037, 0.000]
+        # - Rotation: in Quaternion [1.000, -0.001, 0.021, 0.008]
+        'position': {
+            'x': -0.026,
+            'y': -0.037,
+            'z': 0.000
+        },
+        'orientation': {
+            'x': 1.000,
+            'y': -0.001,
+            'z': 0.021,
+            'w': 0.008
+        }
+    },
+    "part9": { # wrt object_part9
+        # - Translation: [-0.003, -0.011, 0.015]
+        # - Rotation: in Quaternion [1.000, 0.007, 0.030, 0.003]
+        'position': {
+            'x': -0.003,
+            'y': -0.011,
+            'z': 0.015
+        },
+        'orientation': {
+            'x': 1.000,
+            'y': 0.007,
+            'z': 0.030,
+            'w': 0.003
+        }
+    },
     "part11": { # wrt object_part11
         'position': {
             'x': 0.006,
@@ -85,6 +137,21 @@ grasp_pose_dict = { # wrt peg object frame
             'y': -0.004,
             'z': 0.003,
             'w': -0.010
+        }
+    },
+    "part12": { # wrt object_part12
+        # - Translation: [-0.005, -0.001, 0.017]
+        # - Rotation: in Quaternion [-0.704, 0.710, 0.010, -0.000]
+        'position': {
+            'x': -0.005,
+            'y': -0.001,
+            'z': 0.017
+        },
+        'orientation': {
+            'x': -0.704,
+            'y': 0.710,
+            'z': 0.010,
+            'w': -0.000
         }
     }
 }
@@ -117,8 +184,13 @@ measured_goal_tcp_pose_dict = { # wrt panda_link0
     }
 }
 
-PRE_GRASP_OFFSET_Z = 0.04  # 4cm
+goal_pose_path = {
+    "part11": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/test4_20251030_151337_part11_refined_final_pose.txt"
+}
+
+PRE_GRASP_OFFSET_Z = 0.07  # 4cm
 PRE_GOAL_OFFSET_Z = 0.03  # 5cm
+GRIPPER_MAX_WIDTH = 0.0396 * 2
 
 def get_transformed_pose(base_pose, relative_pose):
     """
@@ -154,24 +226,23 @@ def get_transformed_pose(base_pose, relative_pose):
 class ControllerSwitcher:
     def __init__(self):
         rospy.init_node('controller_switcher_node')
+        self.path = os.path.dirname(__file__)
 
-        self.hole_name = "part1"
-        self.peg_name = "part11"
         self.base_frame = "panda_link0"
         self.tcp_frame = "panda_hand_tcp"
+        self.hole_name = "part1"
         self.hole_frame = "object_" + self.hole_name
-        self.peg_frame = "object_" + self.peg_name
-        self.grasp_tcp_frame = f"grasp_tcp_{self.peg_name}"
-        self.pre_grasp_tcp_frame = f"pre_grasp_tcp_{self.peg_name}"
-        self.pre_goal_frame = f"pre_goal_pose_{self.peg_name}"
-        self.pre_goal_tcp_frame = f"pre_goal_tcp_{self.peg_name}"
-        self.measured_goal_tcp_frame = f"measured_goal_tcp_pose_{self.peg_name}"
-        self.measured_pre_goal_tcp_frame = f"measured_pre_goal_tcp_pose_{self.peg_name}"
-        self.selected_object = self.peg_name
-        self.object_frame = f"object_{self.selected_object}"
+        self.hole_pose_file = os.path.join(self.path, f"{self.hole_name}-fixed_pose.json")
+        
+        self.selected_object = "part11"
+        self.update_selected_peg(self.selected_object)
+        self.target_pose_frame = f"insert_center_{self.selected_object}"
+        rospy.set_param('/target_pose_frame', self.target_pose_frame)
 
         self.target_area_ratio = {
             'part1': 0.18,
+            'part7': 0.05,
+            'part9': 0.05,
             'part11': 0.03
         }
 
@@ -188,6 +259,7 @@ class ControllerSwitcher:
         # 1. 외부 노드로부터 명령을 받을 Subscriber 추가
         # /set_controller_mode 토픽으로 "1", "2", "3" 또는 컨트롤러 이름을 보내면 바뀝니다.
         self.mode_sub = rospy.Subscriber('/set_controller_mode', String, self.mode_callback)
+        self.gripper_joint_sub = rospy.Subscriber('/franka_state_controller/joint_states', JointState, self.gripper_joint_callback) 
         self.pose_sub = None
         self.pose_received = False
 
@@ -227,7 +299,8 @@ class ControllerSwitcher:
         }
 
         # --- 사전 정의된 GOAL POSE (txt 파일 경로) ---
-        self.goal_pose_path = "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/test4_20251030_151337_part11_refined_final_pose.txt"
+        self.goal_pose_path = goal_pose_path
+        self.goal_pose_data = {}
 
         self.settings = termios.tcgetattr(sys.stdin)
 
@@ -241,14 +314,26 @@ class ControllerSwitcher:
 
         self.print_guide(initial_mode)
 
+    def update_selected_peg(self, peg_name):
+        self.peg_name = peg_name
+        self.peg_frame = "object_" + peg_name
+        self.peg_frame_filtered = "memory_" + peg_name
+        self.grasp_tcp_frame = f"grasp_tcp_{peg_name}"
+        self.pre_grasp_tcp_frame = f"pre_grasp_tcp_{peg_name}"
+        self.pre_goal_frame = f"pre_goal_pose_{peg_name}"
+        self.pre_goal_tcp_frame = f"pre_goal_tcp_{peg_name}"
+        self.insert_center_frame = f"insert_center_{peg_name}"
+        self.measured_goal_tcp_frame = f"measured_goal_tcp_pose_{peg_name}"
+        self.measured_pre_goal_tcp_frame = f"measured_pre_goal_tcp_pose_{peg_name}"
+        self.peg_pose_file = os.path.join(self.path, f"{peg_name}-fixed_pose.json")
+        self.grasp_tcp_pose_file = os.path.join(self.path, f"{peg_name}-grasp_tcp_fixed_pose.json")
+        self.pre_grasp_tcp_pose_file = os.path.join(self.path, f"{peg_name}-pre_grasp_tcp_fixed_pose.json")
+
+        # parameter server에 선택된 peg 이름 저장
+        rospy.set_param('/selected_peg', peg_name)
+
     def load_and_publish_all_saved_poses(self):
         """저장 폴더 내의 모든 _fixed_pose.json 파일을 찾아 TF로 등록"""
-        import glob
-        path = os.path.dirname(__file__)
-        hole_pose_file = os.path.join(path, f"{self.hole_name}-fixed_pose.json")
-        peg_pose_file = os.path.join(path, f"{self.peg_name}-fixed_pose.json")
-        grasp_tcp_pose_file = os.path.join(path, f"{self.peg_name}-grasp_tcp_fixed_pose.json")
-        pre_grasp_tcp_pose_file = os.path.join(path, f"{self.peg_name}-pre_grasp_tcp_fixed_pose.json")
 
         self.update_fixed_pose(
             pose_data=dummy_camera_pose_dict,
@@ -256,56 +341,39 @@ class ControllerSwitcher:
             child_frame="camera_link"
         )
 
-        hole_pose_dict = json.load(open(hole_pose_file, 'r'))
-        self.update_fixed_pose(
-            pose_data=hole_pose_dict,
-            parent_frame=self.base_frame,
-            child_frame=self.hole_frame
-        )
+        if os.path.exists(self.hole_pose_file):
+            hole_pose_dict = json.load(open(self.hole_pose_file, 'r'))
+            self.update_fixed_pose(
+                pose_data=hole_pose_dict,
+                parent_frame=self.base_frame,
+                child_frame=self.hole_frame
+            )
+            rospy.loginfo(f"Loaded hole fixed pose from {self.hole_pose_file}")
 
-        peg_pose_dict = json.load(open(peg_pose_file, 'r'))
-        self.update_fixed_pose(
-            pose_data=peg_pose_dict,
-            parent_frame=self.base_frame,
-            child_frame=self.peg_frame
-        )
+        if self.peg_name in self.goal_pose_path:
+            if os.path.exists(self.goal_pose_path[self.peg_name]):
+                self.goal_pose_data[self.peg_name] = self.load_goal_matrix(self.goal_pose_path[self.peg_name])
+                self.update_fixed_pose(
+                    pose_data=self.goal_pose_data[self.peg_name],
+                    parent_frame=self.hole_frame,
+                    child_frame=f"goal_pose_{self.peg_name}"
+                )
 
-        grasp_tcp_pose_dict = json.load(open(grasp_tcp_pose_file, 'r'))
-        self.update_fixed_pose(
-            pose_data=grasp_tcp_pose_dict,
-            parent_frame=self.peg_frame,
-            child_frame=self.grasp_tcp_frame
-        )
+                # Pre-goal 포즈 계산 및 등록
+                pre_goal_pose_dict = copy.deepcopy(self.goal_pose_data[self.peg_name])
+                pre_goal_pose_dict['position']['z'] += PRE_GOAL_OFFSET_Z
+                self.update_fixed_pose(
+                    pose_data=pre_goal_pose_dict,
+                    parent_frame=self.hole_frame,
+                    child_frame=self.pre_goal_frame
+                )
 
-        pre_grasp_tcp_pose_dict = json.load(open(pre_grasp_tcp_pose_file, 'r'))
-        self.update_fixed_pose(
-            pose_data=pre_grasp_tcp_pose_dict,
-            parent_frame=self.peg_frame,
-            child_frame=self.pre_grasp_tcp_frame
-        )
-
-        self.load_goal_matrix()
-        self.update_fixed_pose(
-            pose_data=self.goal_pose_data,
-            parent_frame=self.hole_frame,
-            child_frame=f"goal_pose_{self.peg_name}"
-        )
-
-        # Pre-goal 포즈 계산 및 등록
-        pre_goal_pose_dict = copy.deepcopy(self.goal_pose_data)
-        pre_goal_pose_dict['position']['z'] += PRE_GOAL_OFFSET_Z
-        self.update_fixed_pose(
-            pose_data=pre_goal_pose_dict,
-            parent_frame=self.hole_frame,
-            child_frame=self.pre_goal_frame
-        )
-
-        # Pre-goal TCP 포즈 계산 및 등록
-        self.update_fixed_pose(
-            pose_data=grasp_pose_dict[self.peg_name],
-            parent_frame=self.pre_goal_frame,
-            child_frame=self.pre_goal_tcp_frame
-        )
+                # Pre-goal TCP 포즈 계산 및 등록
+                self.update_fixed_pose(
+                    pose_data=grasp_pose_dict[self.peg_name],
+                    parent_frame=self.pre_goal_frame,
+                    child_frame=self.pre_goal_tcp_frame
+                )
 
         # Measured goal pose 등록
         # self.update_fixed_pose(
@@ -324,15 +392,11 @@ class ControllerSwitcher:
 
         self.publish_all_static_tfs()
 
-    def load_goal_matrix(self):
+    def load_goal_matrix(self, goal_pose_path):
         """txt 파일에서 4x4 행렬을 읽어와서 TF 포맷으로 변환"""
-        if not os.path.exists(self.goal_pose_path):
-            rospy.logerr(f"Goal pose file not found at {self.goal_pose_path}")
-            return False
-
         try:
             # 텍스트 파일에서 4x4 행렬 로드 (공백 또는 탭 구분)
-            matrix = np.loadtxt(self.goal_pose_path)
+            matrix = np.loadtxt(goal_pose_path)
             if matrix.shape != (4, 4):
                 rospy.logerr("Matrix shape is not 4x4")
                 return False
@@ -344,27 +408,27 @@ class ControllerSwitcher:
             # quaternion_from_matrix는 4x4를 입력받음
             q = tft.quaternion_from_matrix(matrix)
 
-            self.goal_transform = {
+            goal_transform = {
                 'translation': trans.tolist(),
                 'rotation': q.tolist()
             }
 
-            self.goal_pose_data = {
+            goal_pose_data = {
                 "position": {
-                    "x": self.goal_transform['translation'][0],
-                    "y": self.goal_transform['translation'][1],
-                    "z": self.goal_transform['translation'][2]
+                    "x": goal_transform['translation'][0],
+                    "y": goal_transform['translation'][1],
+                    "z": goal_transform['translation'][2]
                 },
                 "orientation": {
-                    "x": self.goal_transform['rotation'][0],
-                    "y": self.goal_transform['rotation'][1],
-                    "z": self.goal_transform['rotation'][2],
-                    "w": self.goal_transform['rotation'][3]
+                    "x": goal_transform['rotation'][0],
+                    "y": goal_transform['rotation'][1],
+                    "z": goal_transform['rotation'][2],
+                    "w": goal_transform['rotation'][3]
                 }
             }
 
             rospy.loginfo("Successfully loaded goal matrix from txt file.")
-            return True
+            return goal_pose_data
         except Exception as e:
             rospy.logerr(f"Failed to load goal matrix: {e}")
             return False
@@ -385,6 +449,17 @@ class ControllerSwitcher:
         command = msg.data.strip()
         rospy.loginfo(f"Received mode command from topic: {command}")
         self.change_mode(command)
+
+    def gripper_joint_callback(self, msg):
+        """그리퍼 조인트 상태를 구독하여 그리퍼 열림/닫힘 상태를 업데이트"""
+        try:
+            # gripper_joint1의 위치 인덱스 찾기
+            gripper_width = msg.position[0] + msg.position[1]  # 두 조인트의 위치 합산
+            # 그리퍼가 닫혀있으면 True, 열려있으면 False
+            if gripper_width + 0.005 < GRIPPER_MAX_WIDTH: self.is_gripper_closed = True
+            else: self.is_gripper_closed = False
+        except ValueError:
+            rospy.logerr("panda_finger_joint1 not found in JointState message")
 
     def _mask_callback(self, msg):
         try:
@@ -513,8 +588,8 @@ class ControllerSwitcher:
                 plan = self.arm.retime_trajectory(
                     self.arm.get_current_state(),
                     plan,
-                    velocity_scaling_factor=1,
-                    acceleration_scaling_factor=0.3,
+                    velocity_scaling_factor=0.5,
+                    acceleration_scaling_factor=0.2,
                     algorithm="time_optimal_trajectory_generation"  # ROS1 MoveIt에서 흔히 사용
                 )
                 self.arm.execute(plan, wait=True)
@@ -587,7 +662,6 @@ class ControllerSwitcher:
         joy = Joy()
         joy.buttons = [0, 1]
         self.joy_pub.publish(joy)
-        self.is_gripper_closed = True # 상태 업데이트
 
     def open_gripper(self):
         rospy.loginfo("Opening gripper...")
@@ -595,7 +669,6 @@ class ControllerSwitcher:
         joy = Joy()
         joy.buttons = [1, 0]
         self.joy_pub.publish(joy)
-        self.is_gripper_closed = False # 상태 업데이트
 
     def check_grasp_status(self, event):
         """TCP와 목표 Grasp Pose 사이의 거리를 계산하여 잡기 성공 여부 판단"""
@@ -752,15 +825,17 @@ class ControllerSwitcher:
         # 객체 선택 로직을 여기에 추가합니다.
         # sam2 노드 동작 요청
         self.selected_object = obj_name
-        self.object_frame = f"object_{obj_name}"
+        self.update_selected_peg(obj_name)
 
         msg = String()
         msg.data = obj_name
         
         # 3. 토픽 발행 (Publish)
         self.sam2_pub.publish(msg)
+        self.fp_pub.publish(msg)
         
         rospy.loginfo(f"Published target object '{obj_name}' to /sam2_target_object")
+        rospy.loginfo(f"Published target object '{obj_name}' to /fp_target_object")
         rospy.loginfo(f"Selected target object: {self.selected_object}")
 
     def request_object_pose(self, obj_name):
@@ -789,6 +864,11 @@ class ControllerSwitcher:
                 break
             print("Waiting for pose data...", end='\r')
             rospy.sleep(0.1)
+        # if self.pose_received:
+        #     rospy.loginfo("Pose data received successfully.")
+        #     self.update_grasp_pose(obj_name, self.peg_frame_filtered)
+        #     self.publish_all_static_tfs()
+
         self.pose_sub.unregister()
         self.pose_received = False
 
@@ -797,13 +877,12 @@ class ControllerSwitcher:
         self.pose_received = True
         rospy.loginfo("New pose received via callback.")
 
-    def fix_object_pose(self, obj_name):
-        rospy.loginfo(f"Fixing pose for object: {obj_name}")
-        file_path = os.path.join(os.path.dirname(__file__), f'{obj_name}-fixed_pose.json')
-        
+    def fix_object_pose(self):
+        rospy.loginfo(f"Fixing pose for object: {self.selected_object}")
+        file_path = os.path.join(os.path.dirname(__file__), f'{self.selected_object}-fixed_pose.json')
+
         poses_in_base = []
-        topic_name = f"/object_pose/{obj_name}"
-        object_frame = f"object_{obj_name}"
+        topic_name = f"/object_pose/{self.selected_object}"
         num_samples = 10
         timeout = 10  # seconds
         start_time = rospy.Time.now()
@@ -851,6 +930,7 @@ class ControllerSwitcher:
                 except (rospy.ROSException, tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                     continue
             
+            # print(len(poses_in_base))
             if len(poses_in_base) >= num_samples:
                 # 3. 베이스 기준 포즈들 평균 계산 및 저장
                 avg_pose_dict = self.calculate_average_pose(poses_in_base)
@@ -871,37 +951,46 @@ class ControllerSwitcher:
             self.update_fixed_pose(
                 pose_data=avg_pose_dict,
                 parent_frame=self.base_frame,
-                child_frame=object_frame
+                child_frame=self.peg_frame_filtered
             )
 
             # Pre-grasp, Grasp 자세 계산
-            if obj_name == self.peg_name:
-                grasp_file_path = os.path.join(os.path.dirname(__file__), f'{self.grasp_tcp_frame}_fixed_pose.json')
-                self.save_pose_to_file(grasp_pose_dict, grasp_file_path)
-                rospy.loginfo(f"Successfully saved grasp pose to {grasp_file_path}")
-                self.update_fixed_pose(
-                    pose_data=grasp_pose_dict[self.peg_name],
-                    parent_frame=self.peg_frame,
-                    child_frame=self.grasp_tcp_frame
-                )
-
-                # Pre-grasp 자세 저장
-                pre_grasp_pose_dict = copy.deepcopy(grasp_pose_dict[self.peg_name])
-                pre_grasp_pose_dict['position']['z'] += PRE_GRASP_OFFSET_Z
-                pre_grasp_file_path = os.path.join(os.path.dirname(__file__), f'{self.pre_grasp_tcp_frame}_fixed_pose.json')
-                self.save_pose_to_file(pre_grasp_pose_dict, pre_grasp_file_path)
-                rospy.loginfo(f"Successfully saved pre-grasp pose to {pre_grasp_file_path}")
-                self.update_fixed_pose(
-                    pose_data=pre_grasp_pose_dict,
-                    parent_frame=self.peg_frame,
-                    child_frame=self.pre_grasp_tcp_frame
-                )
+            # if (self.selected_object == self.peg_name):
+            #     self.update_grasp_pose(self.peg_name, self.peg_frame_filtered)
 
             self.publish_all_static_tfs()
-            rospy.loginfo(f"Fixed pose for {obj_name} established on panda_link0.")
+            rospy.loginfo(f"Fixed pose for {self.selected_object} established on panda_link0.")
 
         except Exception as e:
             rospy.logerr(f"Error in fix_object_pose: {e}")
+
+    def update_grasp_pose(self, obj_name, parent_frame):
+        if (obj_name in grasp_pose_dict):
+            # self.save_pose_to_file(grasp_pose_dict, self.grasp_tcp_pose_file)
+            # rospy.loginfo(f"Successfully saved grasp pose to {self.grasp_tcp_pose_file}")
+            self.update_fixed_pose(
+                pose_data=grasp_pose_dict[obj_name],
+                parent_frame=parent_frame,
+                child_frame=self.grasp_tcp_frame
+            )
+            rospy.loginfo(f"Grasp pose updated for: {self.grasp_tcp_frame}")
+            # Pre-grasp 자세 저장
+            pre_grasp_pose_dict = copy.deepcopy(grasp_pose_dict[obj_name])
+            pre_grasp_pose_dict['position']['z'] += PRE_GRASP_OFFSET_Z
+            # self.save_pose_to_file(pre_grasp_pose_dict, self.pre_grasp_tcp_pose_file)
+            # rospy.loginfo(f"Successfully saved pre-grasp pose to {self.pre_grasp_tcp_pose_file}")
+            self.update_fixed_pose(
+                pose_data=pre_grasp_pose_dict,
+                parent_frame=parent_frame,
+                child_frame=self.pre_grasp_tcp_frame
+            )
+            rospy.loginfo(f"Pre-grasp pose updated for: {self.pre_grasp_tcp_frame}")
+
+            self.update_fixed_pose(
+                pose_data=insert_center_dict[obj_name],
+                parent_frame=parent_frame,
+                child_frame=self.insert_center_frame
+            )
 
     def calculate_relative_grasp_orientation(self, object_quat_base):
         """참고 코드에서 제공된 Peg 정렬 로직"""
@@ -989,7 +1078,7 @@ class ControllerSwitcher:
 
         dx = pre_goal_tcp_pose_stamped.pose.position.x - current_tcp_pose.position.x
         dy = pre_goal_tcp_pose_stamped.pose.position.y - current_tcp_pose.position.y
-        self.move_tcp_xyz(dx=dx, dy=dy, dz=0)
+        # self.move_tcp_xyz(dx=dx, dy=dy, dz=0)
 
         # 1. Pre-Grasp 위치로 이동 (일반 PTP 이동)
         rospy.loginfo(f"Moving {self.tcp_frame} to {target_frame}...")
@@ -1025,6 +1114,7 @@ class ControllerSwitcher:
         print(" Press 'i': [Teleop Impedance Mode]")
         print(" Press 'h': Select Hole as Target Object")
         print(" Press 'p': Select Peg as Target Object")
+        print(" Press 'f': Register Frames")
         print(" Press '0': Set Viewpoint Pose")
         print(" Press '1': Move to Home")
         print(" Press '2': Move to Viewpoint")
@@ -1036,8 +1126,6 @@ class ControllerSwitcher:
         print(" Press '8': Generate Trajectory")
         print(" Press '9': Approach")
         print(" Press 'q': Quit and Shutdown Node")
-
-
         print("-" * 50)
         print(" (Also listening on topic: /set_controller_mode)")
         print(" >> Select Mode: ", end='', flush=True)
@@ -1083,7 +1171,7 @@ class ControllerSwitcher:
         # 2. Pre-Grasp 위치로 이동
         self.switch_controller(self.pos_controller); self.move_to_pre_grasp()# ; self.request_object_pose(self.selected_object)
         # 3. 객체 자세 Refinement 및 Fix
-        self.fix_object_pose(self.selected_object)
+        self.fix_object_pose()
         # 4. Grasping 시도
         self.move_to_pre_grasp(); self.move_to_grasp(); self.close_gripper()
         # 5. 객체 자세 재요청 및 잡힘 확인
@@ -1120,7 +1208,13 @@ class ControllerSwitcher:
         elif key == SELECT_HOLE: # Select Hole
             self.select_object(self.hole_name); 
         elif key == SELECT_PEG: # Select Peg
-            self.select_object(self.peg_name)
+            # get peg number from keyboard input
+            peg_number = input("Enter peg number: ")
+            if int(peg_number) in PEG_LIST:
+                self.peg_name = f"part{peg_number}"
+                self.select_object(self.peg_name)
+            else:
+                rospy.logwarn(f"Invalid peg number. Please select from {PEG_LIST}.")
         elif key == SET_VIEWPOINT: # Set Viewpoint Pose
             self.set_viewpoint_pose() 
         elif key == MOVE_TO_HOME: # Move to Home
@@ -1132,7 +1226,7 @@ class ControllerSwitcher:
         elif key == REQUEST_OBJECT_POSE: # Request Object Pose
             self.request_object_pose(self.selected_object);
         elif key == FIX_OBJECT_POSE: # Fix Object Pose
-            self.fix_object_pose(self.selected_object);
+            self.fix_object_pose();
         elif key == MOVE_TO_PRE_GRASP: # Move to Pre-Grasp
             self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.move_to_pre_grasp()
         elif key == MOVE_TO_GRASP: # Move to Grasp
@@ -1143,6 +1237,8 @@ class ControllerSwitcher:
             self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.approach()
         elif key == GRASPING: # Grasping
             self.grasping()
+        # elif key == REGISTER_FRAMES: # Register Frames
+        #     self.update_grasp_pose(self.selected_object, self.peg_frame_filtered); self.publish_all_static_tfs()
         self.mode = key
         return True
 

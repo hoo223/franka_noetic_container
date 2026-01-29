@@ -5,10 +5,10 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /TF1/Frames1
-        - /WrenchStamped1
-      Splitter Ratio: 0.7529411911964417
-    Tree Height: 752
+        - /TF1
+        - /Marker Group1
+      Splitter Ratio: 0.7323529124259949
+    Tree Height: 750
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -18,45 +18,12 @@ Panels:
       - /Publish Point1
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
-  - Class: rviz/Views
-    Expanded:
-      - /Current View1
-    Name: Views
-    Splitter Ratio: 0.5
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: Part11 Mask
+    SyncSource: Image
   - Class: rviz_visual_tools/RvizVisualToolsGui
     Name: RvizVisualToolsGui
-  - Class: rviz/Displays
-    Help Height: 70
-    Name: Displays
-    Property Tree Widget:
-      Expanded:
-        - /Global Options1
-        - /TF1
-        - /Marker Group1
-      Splitter Ratio: 0.5
-    Tree Height: 373
-  - Class: rviz/Displays
-    Help Height: 70
-    Name: Displays
-    Property Tree Widget:
-      Expanded:
-        - /Global Options1
-        - /TF1
-        - /Images1
-      Splitter Ratio: 0.5
-    Tree Height: 373
-  - Class: rviz/Displays
-    Help Height: 70
-    Name: Displays
-    Property Tree Widget:
-      Expanded:
-        - /Marker Group1
-      Splitter Ratio: 0.5
-    Tree Height: 373
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -102,7 +69,7 @@ Visualization Manager:
       Enabled: true
       Filter (blacklist): ""
       Filter (whitelist): ""
-      Frame Timeout: 5000
+      Frame Timeout: 1
       Frames:
         All Enabled: false
         camera_aligned_depth_to_color_frame:
@@ -120,6 +87,10 @@ Visualization Manager:
         goal_pose_part11:
           Value: true
         grasp_tcp_part11:
+          Value: true
+        insert_center_part11:
+          Value: true
+        memory_part11:
           Value: true
         object_part1:
           Value: true
@@ -181,10 +152,18 @@ Visualization Manager:
           Value: true
         pre_grasp_tcp_part11:
           Value: true
+        target_pose:
+          Value: true
+        target_tcp:
+          Value: false
+        virtual_pivot:
+          Value: true
+        visual_target_marker:
+          Value: true
         world:
           Value: true
       Marker Alpha: 0.5
-      Marker Scale: 0.10000000149011612
+      Marker Scale: 0.05000000074505806
       Name: TF
       Show Arrows: true
       Show Axes: true
@@ -192,6 +171,13 @@ Visualization Manager:
       Tree:
         world:
           panda_link0:
+            memory_part11:
+              grasp_tcp_part11:
+                {}
+              insert_center_part11:
+                {}
+              pre_grasp_tcp_part11:
+                {}
             object_part1:
               goal_pose_part11:
                 {}
@@ -229,10 +215,7 @@ Visualization Manager:
                             panda_hand:
                               camera_color_optical_frame:
                                 object_part11:
-                                  grasp_tcp_part11:
-                                    {}
-                                  pre_grasp_tcp_part11:
-                                    {}
+                                  {}
                               camera_link:
                                 camera_aligned_depth_to_color_frame:
                                   {}
@@ -249,10 +232,18 @@ Visualization Manager:
                                 {}
                               panda_rightfinger:
                                 {}
+            target_pose:
+              {}
+            target_tcp:
+              {}
+            virtual_pivot:
+              {}
+            visual_target_marker:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
-      Arrow Width: 0.30000001192092896
+      Arrow Width: 0.10000000149011612
       Class: rviz/WrenchStamped
       Enabled: false
       Force Arrow Scale: 0.10000000149011612
@@ -262,7 +253,7 @@ Visualization Manager:
       Name: WrenchStamped
       Queue Size: 10
       Topic: /franka_state_controller/F_ext
-      Torque Arrow Scale: 1
+      Torque Arrow Scale: 0.10000000149011612
       Torque Color: 204; 204; 51
       Unreliable: false
       Value: false
@@ -405,18 +396,6 @@ Visualization Manager:
     - Class: rviz/Group
       Displays:
         - Class: rviz/Image
-          Enabled: true
-          Image Topic: /sam2_mask/part11
-          Max Value: 1
-          Median window: 5
-          Min Value: 0
-          Name: Part11 Mask
-          Normalize Range: true
-          Queue Size: 2
-          Transport Hint: raw
-          Unreliable: false
-          Value: true
-        - Class: rviz/Image
           Enabled: false
           Image Topic: /camera/color/image_raw
           Max Value: 1
@@ -428,20 +407,73 @@ Visualization Manager:
           Transport Hint: raw
           Unreliable: false
           Value: false
+        - Class: rviz/Image
+          Enabled: false
+          Image Topic: /sam2_mask/part11
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Part11 Mask
+          Normalize Range: true
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: false
+        - Class: rviz/Image
+          Enabled: false
+          Image Topic: /sam2_mask/part12
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Part12 Mask
+          Normalize Range: true
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: false
+        - Class: rviz/Image
+          Enabled: false
+          Image Topic: /sam2_debug_mask/part12
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Part12 Mask (Debug)
+          Normalize Range: true
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: false
+        - Class: rviz/Image
+          Enabled: true
+          Image Topic: /sam2_debug_mask
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Image
+          Normalize Range: true
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: true
       Enabled: true
       Name: Images
-    - Class: rviz/Image
-      Enabled: true
-      Image Topic: /camera/color/image_raw
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Image
-      Normalize Range: true
-      Queue Size: 2
-      Transport Hint: raw
-      Unreliable: false
-      Value: true
+    - Class: rviz/TF
+      Enabled: false
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+      Marker Alpha: 1
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -470,7 +502,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 1.0359337329864502
+      Distance: 2.1476356983184814
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -478,29 +510,33 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.18188607692718506
-        Y: 0.36777210235595703
-        Z: 1.6227272681135219e-06
+        X: -0.11433717608451843
+        Y: 0.577800452709198
+        Z: -2.6226962290820666e-07
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.35979530215263367
+      Pitch: -0.05020264536142349
       Target Frame: <Fixed Frame>
-      Yaw: 0.9652669429779053
+      Yaw: 5.878288269042969
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
   Height: 1371
-  Hide Left Dock: true
+  Hide Left Dock: false
   Hide Right Dock: false
   Image:
     collapsed: false
   Part11 Mask:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000015600000371fc020000000cfb0000001e0054006f006f006c002000500072006f0070006500720074006900650073000000003b000000990000005c00fffffffb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000024005200760069007a00560069007300750061006c0054006f006f006c007300470075006900000004bd0000003f0000003f00fffffffb000000100044006900730070006c006100790073000000018c00000371000000c700fffffffb000000100044006900730070006c006100790073020000002e000001d10000015800000371fb0000000a0049006d00610067006500000001ce000000a00000000000000000fb0000000a0049006d006100670065010000016c000001020000000000000000fb000000100044006900730070006c006100790073020000002e000002020000015800000340000000010000015600000233fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000004c1000000a000fffffffc0000003b000002330000000000fffffffaffffffff0100000002fb000000100044006900730070006c0061007900730000000000ffffffff0000015600fffffffb0000001200530065006c0065006300740069006f006e0000000385000001560000006c00ffffff00000002000004e90000014bfc0100000016fb000000060052004700420000000000000002840000006600fffffffb0000000a0049006d00610067006501000001cf000001620000000000000000fb0000000a0049006d00610067006501000001b8000001920000000000000000fb0000000a0049006d0061006700650100000000000002460000000000000000fb0000000a0049006d00610067006501000000000000022c0000000000000000fb0000000a0049006d00610067006501000000000000015c0000000000000000fb0000000a0049006d00610067006501000000000000023c0000007200fffffffb000000160050006100720074003100310020004d00610073006b0100000242000002a70000009700fffffffb0000000a0049006d00610067006501000000000000015c0000000000000000fb0000000a0049006d0061006700650100000162000003870000000000000000fb0000000a0049006d00610067006501000000000000028b0000000000000000fb0000000a0049006d0061006700650100000291000002580000000000000000fb0000001200530065006c0065006300740069006f006e0000000000000004db0000000000000000fb0000000a0049006d0061006700650000000000000004e60000000000000000fb0000000a0049006d00610067006500000000000000021c0000000000000000fb0000000a0049006d006100670065020000051a00000080000004e60000014dfb0000000a0049006d006100670065000000034e000001980000000000000000fb0000000a0049006d00610067006501000003790000016d0000000000000000fb0000000a0049006d0061006700650100000000000001b60000000000000000fb0000000a0049006d00610067006501000001bc0000018b0000000000000000fb0000000a0049006d006100670065010000034d000001990000000000000000fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004e90000003dfc0100000002fb0000000800540069006d00650100000000000004e90000030700fffffffb0000000800540069006d00650100000000000004500000000000000000000004e90000037100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Part12 Mask:
+    collapsed: false
+  Part12 Mask (Debug):
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd00000004000000000000015600000371fc020000000afb0000001e0054006f006f006c002000500072006f0070006500720074006900650073000000003b000000990000005c00fffffffb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000024005200760069007a00560069007300750061006c0054006f006f006c007300470075006900000004bd0000003f0000003f00fffffffb000000100044006900730070006c0061007900730200000538000001cd0000015800000371fb000000100044006900730070006c006100790073000000003b000004c20000000000000000fb000000100044006900730070006c006100790073020000002e000002020000015800000340000000010000015600000371fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000004c10000000000000000fc0000018c000003710000000000fffffffa000000000100000002fb000000100044006900730070006c0061007900730000000000ffffffff0000000000000000fb0000001200530065006c0065006300740069006f006e0000000385000001560000006c00ffffff00000002000004e90000014bfc010000001ffb000000160050006100720074003100320020004d00610073006b00000000000000013e0000009700fffffffb000000260050006100720074003100320020004d00610073006b00200028004400650062007500670029000000000000000312000000cb00fffffffb0000000a0049006d0061006700650100000000000004e90000007200fffffffb000000160050006100720074003100320020004d00610073006b000000033c000001ad0000000000000000fb0000000a0049006d006100670065000000030e000000db0000000000000000fb0000000a0049006d00610067006500000003ef000000fa0000000000000000fb0000000a0049006d00610067006501000001b8000001920000000000000000fb0000000a0049006d0061006700650100000000000002460000000000000000fb0000000a0049006d00610067006501000000000000022c0000000000000000fb0000000a0049006d00610067006501000000000000015c0000000000000000fb0000000a0049006d00610067006501000000000000023c0000000000000000fb0000000a0049006d0061006700650100000000000002ab0000000000000000fb0000000a0049006d00610067006501000002b1000002380000000000000000fb000000060052004700420000000278000002710000006600fffffffb0000000a0049006d0061006700650100000000000002860000000000000000fb0000000a0049006d0061006700650100000000000004e90000000000000000fb000000160050006100720074003100310020004d00610073006b0200000228000001d200000280000001e0fb0000000a0049006d00610067006501000000000000015c0000000000000000fb0000000a0049006d0061006700650100000162000003870000000000000000fb0000000a0049006d00610067006501000000000000028b0000000000000000fb0000000a0049006d0061006700650100000291000002580000000000000000fb0000001200530065006c0065006300740069006f006e0000000000000004db0000000000000000fb0000000a0049006d0061006700650000000000000004e60000000000000000fb0000000a0049006d00610067006500000000000000021c0000000000000000fb0000000a0049006d006100670065020000051a00000080000004e60000014dfb0000000a0049006d006100670065000000034e000001980000000000000000fb0000000a0049006d00610067006501000003790000016d0000000000000000fb0000000a0049006d0061006700650100000000000001b60000000000000000fb0000000a0049006d00610067006501000001bc0000018b0000000000000000fb0000000a0049006d006100670065010000034d000001990000000000000000fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004e90000003dfc0100000002fb0000000800540069006d00650100000000000004e90000030700fffffffb0000000800540069006d00650100000000000004500000000000000000000004e90000037100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   RGB:
     collapsed: false
   RvizVisualToolsGui:
@@ -510,8 +546,6 @@ Window Geometry:
   Time:
     collapsed: false
   Tool Properties:
-    collapsed: false
-  Views:
     collapsed: false
   Width: 1257
   X: 46

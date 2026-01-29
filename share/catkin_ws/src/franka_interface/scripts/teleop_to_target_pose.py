@@ -46,6 +46,10 @@ class DualDeviceController:
     def __init__(self):
         rospy.init_node('dual_device_integrator')
 
+        self.selected_peg = rospy.get_param("/selected_peg", "")
+        self.target_pose_frame = rospy.get_param("/target_pose_frame", "insert_center_part11")
+        print(f"Target Pose Frame: {self.target_pose_frame}")
+
         # --- 설정 ---
         self.LINEAR_STEP = 0.5
         self.ANGULAR_STEP = 0.5
@@ -68,11 +72,9 @@ class DualDeviceController:
         self.space_sub = rospy.Subscriber("/spacenav/twist", Twist, self.space_callback)
         self.mode_sub = rospy.Subscriber("/current_mode", String, self.mode_callback)
         
-        self.pose_pub = rospy.Publisher("/cartesian_pose_controller/tcp_target_pose", 
+        self.target_pose_pub = rospy.Publisher("/target_pose", 
                                          PoseStamped, queue_size=1, tcp_nodelay=True)
-        self.imp_pub = rospy.Publisher("/cartesian_impedance_example_controller/equilibrium_pose", 
-                                        PoseStamped, queue_size=1, tcp_nodelay=True)
-
+        
         rospy.loginfo("TF 대기 중...")
         while not self.sync_target_with_tf() and not rospy.is_shutdown():
             rospy.sleep(0.1)
@@ -84,7 +86,7 @@ class DualDeviceController:
     def sync_target_with_tf(self):
         """현재 로봇의 실제 포즈를 target_pose에 반영"""
         try:
-            (trans, rot) = self.listener.lookupTransform('panda_link0', 'panda_hand_tcp', rospy.Time(0))
+            (trans, rot) = self.listener.lookupTransform('panda_link0', self.target_pose_frame, rospy.Time(0))
             self.target_pos = np.array(trans)
             self.target_quat = np.array(rot)
             return True
@@ -113,7 +115,7 @@ class DualDeviceController:
         return vec / norm if norm > 0.02 else np.zeros(3)
 
     def run(self):
-        rate = rospy.Rate(50) 
+        rate = rospy.Rate(15) 
         dt = 0.005
 
         while not rospy.is_shutdown():
@@ -143,10 +145,7 @@ class DualDeviceController:
                 msg.pose.position.x, msg.pose.position.y, msg.pose.position.z = self.target_pos
                 msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w = self.target_quat
 
-                if self.current_mode == TELEOP_IMPEDANCE:
-                    self.imp_pub.publish(msg)
-                else:
-                    self.pose_pub.publish(msg)
+                self.target_pose_pub.publish(msg)
 
                 # --- [추가] RViz 시각화를 위한 TF 브로드캐스팅 ---
                 if self.target_pos is not None and self.target_quat is not None:
@@ -157,6 +156,7 @@ class DualDeviceController:
                         "target_pose",    # 자식 프레임 이름
                         "panda_link0"     # 부모 프레임 이름
                     )
+
             else:
                 self.sync_target_with_tf()
 
