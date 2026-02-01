@@ -83,16 +83,19 @@ class DualDeviceController:
         return tr.translation_from_matrix(T_base_tcp), tr.quaternion_from_matrix(T_base_tcp)
 
     def run(self):
-        rate = rospy.Rate(15) # 제어 주기
+        rate = rospy.Rate(50) # 제어 주기
 
         while not rospy.is_shutdown():
+            # 루프 시작 시점의 시간을 고정해서 사용
+            current_time = rospy.Time.now()
+            
             if self.current_mode in [TELEOP, TELEOP_IMPEDANCE]:
                 # 실제 로봇에게 보낼 TCP 목표 포즈 계산
                 pub_pos, pub_quat = self.get_tcp_command()
 
                 if pub_pos is not None:
                     msg = PoseStamped()
-                    msg.header.stamp = rospy.Time.now()
+                    msg.header.stamp = current_time
                     msg.header.frame_id = self.base_frame
                     msg.pose.position.x, msg.pose.position.y, msg.pose.position.z = pub_pos
                     msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w = pub_quat
@@ -106,6 +109,8 @@ class DualDeviceController:
                     # # 시각화용 TF (현재 내가 어디를 조종하려고 하는지 표시)
                     # self.br.sendTransform(tuple(self.target_pos), tuple(self.target_quat), 
                     #                       rospy.Time.now(), "visual_target_marker", self.base_frame)
+            else: 
+                self.T_tcp_target = None  # 비조종 모드에서는 캐시 초기화
             
             rate.sleep()
 

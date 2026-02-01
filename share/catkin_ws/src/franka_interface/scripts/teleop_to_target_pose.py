@@ -51,8 +51,8 @@ class DualDeviceController:
         print(f"Target Pose Frame: {self.target_pose_frame}")
 
         # --- 설정 ---
-        self.LINEAR_STEP = 0.5
-        self.ANGULAR_STEP = 0.5
+        self.LINEAR_STEP = 0.1
+        self.ANGULAR_STEP = 0.2
         self.deadzone = 0.1
         
         self.target_pos = None
@@ -115,8 +115,8 @@ class DualDeviceController:
         return vec / norm if norm > 0.02 else np.zeros(3)
 
     def run(self):
-        rate = rospy.Rate(15) 
-        dt = 0.005
+        rate = rospy.Rate(30) 
+        dt = 0.033  # 제어 주기 약 30Hz
 
         while not rospy.is_shutdown():
             # --- [핵심] 모드 전환 감지 (Mode Switching Edge) ---
