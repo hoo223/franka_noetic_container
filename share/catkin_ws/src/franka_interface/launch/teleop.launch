@@ -2,7 +2,8 @@
 <launch>
   <node name="controller_switcher" pkg="franka_interface" type="controller_switcher.py" output="screen"/>
   <node name="input_node" pkg="franka_interface" type="input.py" output="log" />
-  <node name="teleop_to_target_pose_node" pkg="franka_interface" type="teleop_to_target_pose.py" output="log"/>
-  <node name="target_pose_to_tcp_pose_node" pkg="franka_interface" type="target_pose_to_tcp_pose.py" output="log"/>
+  <node name="teleop_to_tcp_target_pose_node" pkg="franka_interface" type="teleop_to_tcp_target_pose.py" output="log"/>
+  <!-- <node name="teleop_to_target_pose_node" pkg="franka_interface" type="teleop_to_target_pose.py" output="log"/> -->
+  <!-- <node name="target_pose_to_tcp_pose_node" pkg="franka_interface" type="target_pose_to_tcp_pose.py" output="log"/> -->
   <node name="pose_tf_node" pkg="franka_interface" type="pose_tf.py" output="log"/>
 </launch>
