@@ -44,12 +44,11 @@ SET_VIEWPOINT = '0'
 MOVE_TO_HOME = '1'
 MOVE_TO_VIEWPOINT = '2'
 ZOOM_TO_OBJECT = '3'
-REQUEST_OBJECT_POSE = '4'
-FIX_OBJECT_POSE = '5'
-MOVE_TO_PRE_GRASP = '6'
-MOVE_TO_GRASP = '7'
-GENERATE_TRAJECTORY = '8'
-APPROACH = '9'
+MOVE_TO_PRE_GRASP = '4'
+MOVE_TO_GRASP = '5'
+GENERATE_TRAJECTORY = '6'
+APPROACH = '7'
+INSERTION = '8'
 
 PEG_LIST = [9, 11, 12, 17]
 
@@ -69,12 +68,11 @@ MODE_DICT = {
     '1': 'MOVE_TO_HOME',
     '2': 'MOVE_TO_VIEWPOINT',
     '3': 'ZOOM_TO_OBJECT',
-    '4': 'REQUEST_OBJECT_POSE',
-    '5': 'FIX_OBJECT_POSE',
-    '6': 'MOVE_TO_PRE_GRASP',
-    '7': 'MOVE_TO_GRASP',
-    '8': 'GENERATE_TRAJECTORY',
-    '9': 'APPROACH',
+    '4': 'MOVE_TO_PRE_GRASP',
+    '5': 'MOVE_TO_GRASP',
+    '6': 'GENERATE_TRAJECTORY',
+    '7': 'APPROACH',
+    '8': 'INSERTION',
 }
 
 
@@ -268,6 +266,11 @@ class ControllerSwitcher:
         self.sam2_pub = rospy.Publisher('/sam2_target_object', String, queue_size=1, latch=False)
         self.fp_pub = rospy.Publisher('/fp_target_object', String, queue_size=1, latch=False)
         self.joy_pub = rospy.Publisher('/spacenav/joy', Joy, queue_size=1)
+        self.policy_reset_pub = rospy.Publisher('/policy/reset', Bool, queue_size=1)
+        self.policy_enable_pub = rospy.Publisher('/policy/enable', Bool, queue_size=1)
+        self.policy_status_sub = rospy.Subscriber('/policy/status', String, self.policy_status_callback)
+        self.policy_status = 'UNKNOWN'
+        self.insertion_active = False
 
         # 컨트롤러 이름 정의
         self.pos_controller = "position_joint_trajectory_controller"
@@ -449,6 +452,26 @@ class ControllerSwitcher:
         command = msg.data.strip()
         rospy.loginfo(f"Received mode command from topic: {command}")
         self.change_mode(command)
+
+    def policy_status_callback(self, msg):
+        self.policy_status = msg.data
+
+    def start_insertion(self):
+        rospy.loginfo('Starting insertion mode...')
+        self.switch_controller(self.imp_controller)
+        rospy.sleep(0.5)
+        self.policy_reset_pub.publish(Bool(data=True))
+        rospy.sleep(0.05)
+        self.policy_reset_pub.publish(Bool(data=False))
+        self.policy_enable_pub.publish(Bool(data=True))
+        self.insertion_active = True
+
+    def stop_insertion(self):
+        if not self.insertion_active:
+            return
+        rospy.loginfo('Stopping insertion mode...')
+        self.policy_enable_pub.publish(Bool(data=False))
+        self.insertion_active = False
 
     def gripper_joint_callback(self, msg):
         """그리퍼 조인트 상태를 구독하여 그리퍼 열림/닫힘 상태를 업데이트"""
@@ -1119,12 +1142,11 @@ class ControllerSwitcher:
         print(" Press '1': Move to Home")
         print(" Press '2': Move to Viewpoint")
         print(" Press '3': Zoom to Object")
-        print(" Press '4': Request Object Pose")
-        print(" Press '5': Fix Object Pose")
-        print(" Press '6': Move to Pre-Grasp")
-        print(" Press '7': Move to Grasp")
-        print(" Press '8': Generate Trajectory")
-        print(" Press '9': Approach")
+        print(" Press '4': Move to Pre-Grasp")
+        print(" Press '5': Move to Grasp")
+        print(" Press '6': Generate Trajectory")
+        print(" Press '7': Approach")
+        print(" Press '8': Insertion")
         print(" Press 'q': Quit and Shutdown Node")
         print("-" * 50)
         print(" (Also listening on topic: /set_controller_mode)")
@@ -1189,6 +1211,10 @@ class ControllerSwitcher:
     def change_mode(self, key):
         if key is None: 
             return False
+
+        if key != INSERTION:
+            self.stop_insertion()
+
         if   key == MOVEIT: # MoveIt Mode
             self.switch_controller(self.pos_controller) 
         elif key == CARTESIAN_IMPEDANCE: # Cartesian Impedance Mode
@@ -1204,6 +1230,7 @@ class ControllerSwitcher:
         elif key == CLOSE_GRIPPER: # Close Gripper
             self.close_gripper()
         elif key == 'q': # Quit
+            self.stop_insertion()
             return rospy.signal_shutdown("User requested shutdown.") 
         elif key == SELECT_HOLE: # Select Hole
             self.select_object(self.hole_name); 
@@ -1223,10 +1250,6 @@ class ControllerSwitcher:
             self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.move_to_viewpoint()
         elif key == ZOOM_TO_OBJECT: # Zoom to Object
             self.switch_controller(self.pose_controller); rospy.sleep(0.5); self.zoom_to_object(self.selected_object, self.target_area_ratio[self.selected_object]);
-        elif key == REQUEST_OBJECT_POSE: # Request Object Pose
-            self.request_object_pose(self.selected_object);
-        elif key == FIX_OBJECT_POSE: # Fix Object Pose
-            self.fix_object_pose();
         elif key == MOVE_TO_PRE_GRASP: # Move to Pre-Grasp
             self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.move_to_pre_grasp()
         elif key == MOVE_TO_GRASP: # Move to Grasp
@@ -1235,6 +1258,8 @@ class ControllerSwitcher:
             self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.generate_trajectory()
         elif key == APPROACH: # Approach
             self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.approach()
+        elif key == INSERTION: # Insertion
+            self.start_insertion()
         elif key == GRASPING: # Grasping
             self.grasping()
         # elif key == REGISTER_FRAMES: # Register Frames
