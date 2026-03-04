@@ -14,3 +14,7 @@ share/catkin_ws/.catkin_tools/
 share/catkin_ws/log.txt
 
 legacy_ws/
+
+share/log.txt
+
+share/catkin_ws/src/.vscode/
