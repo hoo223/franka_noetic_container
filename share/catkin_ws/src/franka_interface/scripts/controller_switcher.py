@@ -51,6 +51,7 @@ APPROACH = '7'
 INSERTION = '8'
 
 PEG_LIST = [9, 11, 12, 17]
+PEG_NAME_EXTRA = ["part11-2"]
 
 MODE_DICT = {
     'a': 'MOVEIT',
@@ -76,22 +77,6 @@ MODE_DICT = {
 }
 
 
-
-insert_center_dict = {
-    "part11": {
-        "position": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": -0.02
-        },
-        "orientation": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": 0.0,
-            "w": 1.0
-        }
-    }
-}
 
 grasp_pose_dict = { # wrt peg object frame
     "part7": { # wrt object_part7
@@ -184,10 +169,12 @@ measured_goal_tcp_pose_dict = { # wrt panda_link0
 
 goal_pose_path = {
     "part11": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/test4_20251030_151337_part11_refined_final_pose.txt"
+    # "part11": "/root/share/catkin_ws/src/franka_interface/scripts/fixed_pose/part11-2/grasp_tcp.json"
+    # "part11": "/root/share/catkin_ws/src/franka_interface/scripts/fixed_pose/part11/grasp_tcp.json"
 }
 
 PRE_GRASP_OFFSET_Z = 0.07  # 4cm
-PRE_GOAL_OFFSET_Z = 0.03  # 5cm
+PRE_GOAL_OFFSET_Z = 0.033  # 5cm
 GRIPPER_MAX_WIDTH = 0.0396 * 2
 
 def get_transformed_pose(base_pose, relative_pose):
@@ -228,9 +215,10 @@ class ControllerSwitcher:
 
         self.base_frame = "panda_link0"
         self.tcp_frame = "panda_hand_tcp"
+        self.fixed_pose_root = os.path.join(self.path, "fixed_pose")
         self.hole_name = "part1"
         self.hole_frame = "object_" + self.hole_name
-        self.hole_pose_file = os.path.join(self.path, f"{self.hole_name}-fixed_pose.json")
+        self.hole_pose_file = os.path.join(self.fixed_pose_root, self.hole_name, "current.json")
         
         self.selected_object = "part11"
         self.update_selected_peg(self.selected_object)
@@ -257,7 +245,7 @@ class ControllerSwitcher:
         # 1. 외부 노드로부터 명령을 받을 Subscriber 추가
         # /set_controller_mode 토픽으로 "1", "2", "3" 또는 컨트롤러 이름을 보내면 바뀝니다.
         self.mode_sub = rospy.Subscriber('/set_controller_mode', String, self.mode_callback)
-        self.gripper_joint_sub = rospy.Subscriber('/franka_state_controller/joint_states', JointState, self.gripper_joint_callback) 
+        self.gripper_joint_sub = rospy.Subscriber('/franka_gripper/joint_states', JointState, self.gripper_joint_callback)
         self.pose_sub = None
         self.pose_received = False
 
@@ -288,6 +276,9 @@ class ControllerSwitcher:
         self.is_gripper_closed = False
         self.is_grasped = False
         self.grasp_threshold = 0.02  # 2cm 이내일 때 잡은 것으로 간주
+        self.latest_gripper_width = None
+        self.last_gripper_state_stamp = rospy.Time(0)
+        self.gripper_state_timeout = 0.5
         
         # Grasp 상태 발행용 Publisher
         self.grasp_status_pub = rospy.Publisher('/is_grasped', Bool, queue_size=1, latch=True)
@@ -328,9 +319,11 @@ class ControllerSwitcher:
         self.insert_center_frame = f"insert_center_{peg_name}"
         self.measured_goal_tcp_frame = f"measured_goal_tcp_pose_{peg_name}"
         self.measured_pre_goal_tcp_frame = f"measured_pre_goal_tcp_pose_{peg_name}"
-        self.peg_pose_file = os.path.join(self.path, f"{peg_name}-fixed_pose.json")
-        self.grasp_tcp_pose_file = os.path.join(self.path, f"{peg_name}-grasp_tcp_fixed_pose.json")
-        self.pre_grasp_tcp_pose_file = os.path.join(self.path, f"{peg_name}-pre_grasp_tcp_fixed_pose.json")
+        self.peg_pose_root = os.path.join(self.fixed_pose_root, peg_name)
+        self.peg_pose_file = os.path.join(self.fixed_pose_root, peg_name, "current.json")
+        self.grasp_tcp_pose_file = os.path.join(self.fixed_pose_root, peg_name, "grasp_tcp.json")
+        self.pre_grasp_tcp_pose_file = os.path.join(self.fixed_pose_root, peg_name, "pre_grasp_tcp.json")
+        self.insert_center_pose_file = os.path.join(self.fixed_pose_root, peg_name, "insert_center.json")
 
         # parameter server에 선택된 peg 이름 저장
         rospy.set_param('/selected_peg', peg_name)
@@ -372,11 +365,15 @@ class ControllerSwitcher:
                 )
 
                 # Pre-goal TCP 포즈 계산 및 등록
-                self.update_fixed_pose(
-                    pose_data=grasp_pose_dict[self.peg_name],
-                    parent_frame=self.pre_goal_frame,
-                    child_frame=self.pre_goal_tcp_frame
-                )
+                pre_goal_grasp_pose = self.get_grasp_pose(self.peg_name)
+                if pre_goal_grasp_pose is not None:
+                    self.update_fixed_pose(
+                        pose_data=pre_goal_grasp_pose,
+                        parent_frame=self.pre_goal_frame,
+                        child_frame=self.pre_goal_tcp_frame
+                    )
+                else:
+                    rospy.logwarn(f"Skipped {self.pre_goal_tcp_frame}: grasp pose is unavailable for {self.peg_name}")
 
         # Measured goal pose 등록
         # self.update_fixed_pose(
@@ -396,37 +393,41 @@ class ControllerSwitcher:
         self.publish_all_static_tfs()
 
     def load_goal_matrix(self, goal_pose_path):
-        """txt 파일에서 4x4 행렬을 읽어와서 TF 포맷으로 변환"""
+        """txt(4x4) 또는 json(position/orientation) goal pose를 로드"""
         try:
-            # 텍스트 파일에서 4x4 행렬 로드 (공백 또는 탭 구분)
+            ext = os.path.splitext(goal_pose_path)[1].lower()
+
+            if ext == '.json':
+                with open(goal_pose_path, 'r') as f:
+                    data = json.load(f)
+
+                if 'position' in data and 'orientation' in data:
+                    rospy.loginfo("Successfully loaded goal pose from json file.")
+                    return data
+
+                rospy.logerr("Invalid goal json format. Expected position/orientation keys.")
+                return False
+
+            # default: 텍스트 파일에서 4x4 행렬 로드 (공백 또는 탭 구분)
             matrix = np.loadtxt(goal_pose_path)
             if matrix.shape != (4, 4):
                 rospy.logerr("Matrix shape is not 4x4")
                 return False
 
-            # Translation 추출
             trans = matrix[:3, 3]
-            
-            # Rotation Matrix를 Quaternion으로 변환
-            # quaternion_from_matrix는 4x4를 입력받음
             q = tft.quaternion_from_matrix(matrix)
-
-            goal_transform = {
-                'translation': trans.tolist(),
-                'rotation': q.tolist()
-            }
 
             goal_pose_data = {
                 "position": {
-                    "x": goal_transform['translation'][0],
-                    "y": goal_transform['translation'][1],
-                    "z": goal_transform['translation'][2]
+                    "x": trans[0],
+                    "y": trans[1],
+                    "z": trans[2]
                 },
                 "orientation": {
-                    "x": goal_transform['rotation'][0],
-                    "y": goal_transform['rotation'][1],
-                    "z": goal_transform['rotation'][2],
-                    "w": goal_transform['rotation'][3]
+                    "x": q[0],
+                    "y": q[1],
+                    "z": q[2],
+                    "w": q[3]
                 }
             }
 
@@ -476,13 +477,14 @@ class ControllerSwitcher:
     def gripper_joint_callback(self, msg):
         """그리퍼 조인트 상태를 구독하여 그리퍼 열림/닫힘 상태를 업데이트"""
         try:
-            # gripper_joint1의 위치 인덱스 찾기
-            gripper_width = msg.position[0] + msg.position[1]  # 두 조인트의 위치 합산
-            # 그리퍼가 닫혀있으면 True, 열려있으면 False
-            if gripper_width + 0.005 < GRIPPER_MAX_WIDTH: self.is_gripper_closed = True
-            else: self.is_gripper_closed = False
-        except ValueError:
-            rospy.logerr("panda_finger_joint1 not found in JointState message")
+            idx1 = msg.name.index('panda_finger_joint1')
+            idx2 = msg.name.index('panda_finger_joint2')
+            gripper_width = msg.position[idx1] + msg.position[idx2]  # 두 조인트의 위치 합산
+            self.latest_gripper_width = gripper_width
+            self.last_gripper_state_stamp = rospy.Time.now()
+            self.is_gripper_closed = (gripper_width + 0.005 < GRIPPER_MAX_WIDTH)
+        except (ValueError, IndexError):
+            rospy.logwarn_throttle(1.0, "finger joints not found in /franka_gripper/joint_states")
 
     def _mask_callback(self, msg):
         try:
@@ -666,7 +668,8 @@ class ControllerSwitcher:
             arm_joints = {k: v for k, v in viewpoint_data.items() if 'panda_joint' in k}
 
             # 파일 저장 경로 설정 (스크립트와 같은 위치)
-            file_path = os.path.join(os.path.dirname(__file__), 'viewpoint_pose.json')
+            file_path = os.path.join(self.fixed_pose_root, 'viewpoint', 'current.json')
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
             
             with open(file_path, 'w') as f:
                 json.dump(arm_joints, f, indent=4)
@@ -695,29 +698,51 @@ class ControllerSwitcher:
 
     def check_grasp_status(self, event):
         """TCP와 목표 Grasp Pose 사이의 거리를 계산하여 잡기 성공 여부 판단"""
-        
-        # 그리퍼가 닫혀있을 때만 거리 체크 수행
-        if self.is_gripper_closed:
-            try:
-                # base_frame(panda_link0) 기준이 아닌, 
-                # grasp_tcp_frame 기준의 panda_hand_tcp 위치를 직접 가져오면 거리가 바로 나옵니다.
-                trans = self.tf_buffer.lookup_transform(
-                    self.grasp_tcp_frame, 
-                    self.tcp_frame, 
-                    rospy.Time(0)
-                )
-                
-                # 원점(0,0,0)으로부터의 거리 계산 (Euclidean Distance)
-                dist = np.sqrt(trans.transform.translation.x**2 + 
-                               trans.transform.translation.y**2 + 
-                               trans.transform.translation.z**2)
-                
-                if dist < self.grasp_threshold:
-                    self.is_grasped = True
-                    
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                # TF를 찾을 수 없는 경우 (아직 Fix Pose가 안 되었을 때 등)
-                self.is_grasped = False
+        now = rospy.Time.now()
+        state_age_sec = (now - self.last_gripper_state_stamp).to_sec()
+        has_recent_gripper_state = (
+            self.latest_gripper_width is not None and
+            state_age_sec <= self.gripper_state_timeout
+        )
+
+        if not has_recent_gripper_state:
+            self.is_gripper_closed = False
+            self.is_grasped = False
+            self.grasp_status_pub.publish(Bool(self.is_grasped))
+            return
+
+        gripper_width = self.latest_gripper_width
+        if gripper_width is None:
+            self.is_gripper_closed = False
+            self.is_grasped = False
+            self.grasp_status_pub.publish(Bool(self.is_grasped))
+            return
+
+        self.is_gripper_closed = (gripper_width + 0.005 < GRIPPER_MAX_WIDTH)
+        if not self.is_gripper_closed:
+            self.is_grasped = False
+            self.grasp_status_pub.publish(Bool(self.is_grasped))
+            return
+
+        try:
+            # base_frame(panda_link0) 기준이 아닌,
+            # grasp_tcp_frame 기준의 panda_hand_tcp 위치를 직접 가져오면 거리가 바로 나옵니다.
+            trans = self.tf_buffer.lookup_transform(
+                self.grasp_tcp_frame,
+                self.tcp_frame,
+                rospy.Time(0)
+            )
+
+            # 원점(0,0,0)으로부터의 거리 계산 (Euclidean Distance)
+            dist = np.sqrt(trans.transform.translation.x**2 +
+                           trans.transform.translation.y**2 +
+                           trans.transform.translation.z**2)
+
+            self.is_grasped = (dist < self.grasp_threshold)
+
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            # TF를 찾을 수 없는 경우 (아직 Fix Pose가 안 되었을 때 등)
+            self.is_grasped = False
 
         # 결과 발행
         self.grasp_status_pub.publish(Bool(self.is_grasped))
@@ -726,7 +751,7 @@ class ControllerSwitcher:
         """저장된 viewpoint.json 파일을 읽어 로봇을 해당 자세로 이동시킵니다."""
         rospy.loginfo("Moving to saved viewpoint...")
         
-        file_path = os.path.join(os.path.dirname(__file__), 'viewpoint_pose.json')
+        file_path = os.path.join(self.fixed_pose_root, 'viewpoint', 'current.json')
         
         if not os.path.exists(file_path):
             rospy.logerr("Viewpoint file not found! Please set pose first (Press '0').")
@@ -902,7 +927,7 @@ class ControllerSwitcher:
 
     def fix_object_pose(self):
         rospy.loginfo(f"Fixing pose for object: {self.selected_object}")
-        file_path = os.path.join(os.path.dirname(__file__), f'{self.selected_object}-fixed_pose.json')
+        file_path = os.path.join(self.fixed_pose_root, self.selected_object, 'current.json')
 
         poses_in_base = []
         topic_name = f"/object_pose/{self.selected_object}"
@@ -957,6 +982,7 @@ class ControllerSwitcher:
             if len(poses_in_base) >= num_samples:
                 # 3. 베이스 기준 포즈들 평균 계산 및 저장
                 avg_pose_dict = self.calculate_average_pose(poses_in_base)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
                 self.save_pose_to_file(avg_pose_dict, file_path)
                 rospy.loginfo(f"Successfully saved base-link pose to {file_path}")
             else:
@@ -988,32 +1014,36 @@ class ControllerSwitcher:
             rospy.logerr(f"Error in fix_object_pose: {e}")
 
     def update_grasp_pose(self, obj_name, parent_frame):
-        if (obj_name in grasp_pose_dict):
-            # self.save_pose_to_file(grasp_pose_dict, self.grasp_tcp_pose_file)
-            # rospy.loginfo(f"Successfully saved grasp pose to {self.grasp_tcp_pose_file}")
-            self.update_fixed_pose(
-                pose_data=grasp_pose_dict[obj_name],
-                parent_frame=parent_frame,
-                child_frame=self.grasp_tcp_frame
-            )
-            rospy.loginfo(f"Grasp pose updated for: {self.grasp_tcp_frame}")
-            # Pre-grasp 자세 저장
-            pre_grasp_pose_dict = copy.deepcopy(grasp_pose_dict[obj_name])
-            pre_grasp_pose_dict['position']['z'] += PRE_GRASP_OFFSET_Z
-            # self.save_pose_to_file(pre_grasp_pose_dict, self.pre_grasp_tcp_pose_file)
-            # rospy.loginfo(f"Successfully saved pre-grasp pose to {self.pre_grasp_tcp_pose_file}")
-            self.update_fixed_pose(
-                pose_data=pre_grasp_pose_dict,
-                parent_frame=parent_frame,
-                child_frame=self.pre_grasp_tcp_frame
-            )
-            rospy.loginfo(f"Pre-grasp pose updated for: {self.pre_grasp_tcp_frame}")
+        grasp_pose = self.get_grasp_pose(obj_name)
+        if grasp_pose is None:
+            rospy.logwarn(f"Grasp pose unavailable for {obj_name}")
+            return
 
-            self.update_fixed_pose(
-                pose_data=insert_center_dict[obj_name],
-                parent_frame=parent_frame,
-                child_frame=self.insert_center_frame
-            )
+        self.update_fixed_pose(
+            pose_data=grasp_pose,
+            parent_frame=parent_frame,
+            child_frame=self.grasp_tcp_frame
+        )
+        rospy.loginfo(f"Grasp pose updated for: {self.grasp_tcp_frame}")
+
+        pre_grasp_pose = self.get_pre_grasp_pose(obj_name, grasp_pose)
+        self.update_fixed_pose(
+            pose_data=pre_grasp_pose,
+            parent_frame=parent_frame,
+            child_frame=self.pre_grasp_tcp_frame
+        )
+        rospy.loginfo(f"Pre-grasp pose updated for: {self.pre_grasp_tcp_frame}")
+
+        insert_center_pose = self.get_insert_center_pose(obj_name)
+        if insert_center_pose is None:
+            rospy.logwarn(f"Insert center pose unavailable for {obj_name}")
+            return
+
+        self.update_fixed_pose(
+            pose_data=insert_center_pose,
+            parent_frame=parent_frame,
+            child_frame=self.insert_center_frame
+        )
 
     def calculate_relative_grasp_orientation(self, object_quat_base):
         """참고 코드에서 제공된 Peg 정렬 로직"""
@@ -1055,6 +1085,58 @@ class ControllerSwitcher:
     def save_pose_to_file(self, pose_data, file_path):
         with open(file_path, 'w') as f:
             json.dump(pose_data, f, indent=4)
+
+    def load_pose_json(self, file_path):
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        if 'position' not in data or 'orientation' not in data:
+            raise ValueError(f"Invalid pose format in {file_path}")
+        return data
+
+    def get_grasp_pose(self, obj_name):
+        grasp_path = os.path.join(self.fixed_pose_root, obj_name, 'grasp_tcp.json')
+        if os.path.exists(grasp_path):
+            try:
+                return self.load_pose_json(grasp_path)
+            except Exception as e:
+                rospy.logwarn(f"Failed to load grasp pose from {grasp_path}: {e}")
+
+        if obj_name in grasp_pose_dict:
+            rospy.logwarn(f"Using legacy grasp_pose_dict fallback for {obj_name}")
+            return grasp_pose_dict[obj_name]
+
+        return None
+
+    def get_pre_grasp_pose(self, obj_name, grasp_pose):
+        pre_grasp_path = os.path.join(self.fixed_pose_root, obj_name, 'pre_grasp_tcp.json')
+        if os.path.exists(pre_grasp_path):
+            try:
+                return self.load_pose_json(pre_grasp_path)
+            except Exception as e:
+                rospy.logwarn(f"Failed to load pre-grasp pose from {pre_grasp_path}: {e}")
+
+        pre_grasp_pose = copy.deepcopy(grasp_pose)
+        pre_grasp_pose['position']['z'] += PRE_GRASP_OFFSET_Z
+        return pre_grasp_pose
+
+    def get_insert_center_pose(self, obj_name):
+        insert_center_path = os.path.join(self.fixed_pose_root, obj_name, 'insert_center.json')
+        if os.path.exists(insert_center_path):
+            try:
+                return self.load_pose_json(insert_center_path)
+            except Exception as e:
+                rospy.logwarn(f"Failed to load insert center pose from {insert_center_path}: {e}")
+
+        if obj_name == 'part11-2':
+            part11_insert_center_path = os.path.join(self.fixed_pose_root, 'part11', 'insert_center.json')
+            if os.path.exists(part11_insert_center_path):
+                try:
+                    rospy.loginfo("Using part11 insert_center.json for part11-2")
+                    return self.load_pose_json(part11_insert_center_path)
+                except Exception as e:
+                    rospy.logwarn(f"Failed to load insert center pose from {part11_insert_center_path}: {e}")
+
+        return None
 
     def update_fixed_pose(self, pose_data, parent_frame, child_frame):
         """딕셔너리에 TF 정보를 등록하거나 업데이트합니다."""
@@ -1236,12 +1318,26 @@ class ControllerSwitcher:
             self.select_object(self.hole_name); 
         elif key == SELECT_PEG: # Select Peg
             # get peg number from keyboard input
-            peg_number = input("Enter peg number: ")
-            if int(peg_number) in PEG_LIST:
-                self.peg_name = f"part{peg_number}"
+            peg_input = input("Enter peg number/name (e.g. 11, 11-2, part12): ").strip()
+            if peg_input.startswith("part"):
+                peg_name = peg_input
+            elif peg_input == "11-2":
+                peg_name = "part11-2"
+            else:
+                try:
+                    peg_number = int(peg_input)
+                    peg_name = f"part{peg_number}" if peg_number in PEG_LIST else None
+                except ValueError:
+                    peg_name = None
+
+            is_valid = peg_name in PEG_NAME_EXTRA or (
+                peg_name is not None and os.path.isdir(os.path.join(self.fixed_pose_root, peg_name))
+            )
+            if is_valid:
+                self.peg_name = peg_name
                 self.select_object(self.peg_name)
             else:
-                rospy.logwarn(f"Invalid peg number. Please select from {PEG_LIST}.")
+                rospy.logwarn("Invalid peg input. Use one of [9, 11, 11-2, 12, 17] or part name.")
         elif key == SET_VIEWPOINT: # Set Viewpoint Pose
             self.set_viewpoint_pose() 
         elif key == MOVE_TO_HOME: # Move to Home
@@ -1262,8 +1358,12 @@ class ControllerSwitcher:
             self.start_insertion()
         elif key == GRASPING: # Grasping
             self.grasping()
-        # elif key == REGISTER_FRAMES: # Register Frames
-        #     self.update_grasp_pose(self.selected_object, self.peg_frame_filtered); self.publish_all_static_tfs()
+        elif key == REGISTER_FRAMES: # Register Frames
+            rospy.loginfo(f"Registering current averaged pose for: {self.selected_object}")
+            self.request_object_pose(self.selected_object)
+            self.fix_object_pose()
+            saved_path = os.path.join(self.fixed_pose_root, self.selected_object, 'current.json')
+            rospy.loginfo(f"Averaged pose registration complete: {saved_path}")
         self.mode = key
         return True
 

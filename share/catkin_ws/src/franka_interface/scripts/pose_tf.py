@@ -4,33 +4,26 @@
 import rospy
 import tf2_ros
 from geometry_msgs.msg import TransformStamped
-import numpy as np
+import os
+import json
 
 class PoseTransformer:
     def __init__(self):
         rospy.init_node('pose_transformer_node')
+        self.path = os.path.dirname(__file__)
+        self.fixed_pose_root = os.path.join(self.path, 'fixed_pose')
 
-        # 1. 설정 데이터 통합 관리
         self.PRE_GRASP_OFFSET_Z = 0.07  # 7cm 위
         
-        # Grasp Pose (객체 좌표계 기준 TCP의 목표 포즈)
-        self.grasp_pose_dict = {
-            "part7":  {"pos": [-0.026, -0.037, 0.000], "quat": [1.000, -0.001, 0.021, 0.008]},
-            "part9":  {"pos": [-0.003, -0.011, 0.015], "quat": [1.000, 0.007, 0.030, 0.003]},
-            "part11": {"pos": [0.006, -0.002, 0.008],  "quat": [1.000, -0.004, 0.003, -0.010]},
-            "part12": {"pos": [-0.005, -0.001, 0.017], "quat": [-0.704, 0.710, 0.010, -0.000]}
-        }
-
-        # Insert Center (객체 좌표계 기준 실제 구멍에 들어갈 중심점 포즈)
-        self.insert_center_dict = {
-            "part7":  {"pos": [0.0, 0.0, -0.02], "quat": [0, 0, 0, 1]},
-            "part9":  {"pos": [0.0, 0.0, -0.02], "quat": [0, 0, 0, 1]},
-            "part11": {"pos": [0.0, 0.0, -0.02], "quat": [0, 0, 0, 1]},
-            "part12": {"pos": [0.0, 0.0, -0.02], "quat": [0, 0, 0, 1]}
-        }
-        
         self.br = tf2_ros.TransformBroadcaster()
-        rospy.loginfo("Pose Transformer Node with Dict Management Started")
+        rospy.loginfo("Pose Transformer Node with JSON pose files started")
+
+    def load_pose(self, file_path):
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        pos = data['position']
+        ori = data['orientation']
+        return [pos['x'], pos['y'], pos['z']], [ori['x'], ori['y'], ori['z'], ori['w']]
 
     def send_tf(self, parent, child, pos, quat):
         """TF 메시지 생성 및 발행"""
@@ -51,23 +44,36 @@ class PoseTransformer:
         rate = rospy.Rate(30)
         while not rospy.is_shutdown():
             # 파라미터 서버에서 현재 작업 중인 물체 이름 획득
-            selected_peg = rospy.get_param('/selected_peg', 'part11')
+            selected_peg = str(rospy.get_param('/selected_peg', 'part11'))
             object_frame = f"memory_{selected_peg}"
-            
-            # 해당 물체에 대한 데이터가 존재할 경우에만 TF 발행
-            if selected_peg in self.grasp_pose_dict:
-                g_data = self.grasp_pose_dict[selected_peg]
-                i_data = self.insert_center_dict.get(selected_peg, {"pos": [0,0,0], "quat": [0,0,0,1]})
 
-                # 1. Grasp TCP 발행
-                self.send_tf(object_frame, f"grasp_tcp_{selected_peg}", g_data["pos"], g_data["quat"])
+            grasp_path = os.path.join(self.fixed_pose_root, selected_peg, 'grasp_tcp.json')
+            if not os.path.exists(grasp_path):
+                rospy.logwarn_throttle(2.0, f"Missing grasp_tcp.json for {selected_peg}: {grasp_path}")
+                rate.sleep()
+                continue
 
-                # 2. Pre-Grasp TCP 발행 (Grasp TCP 대비 Z축 오프셋)
-                pre_pos = [g_data["pos"][0], g_data["pos"][1], g_data["pos"][2] + self.PRE_GRASP_OFFSET_Z]
-                self.send_tf(object_frame, f"pre_grasp_tcp_{selected_peg}", pre_pos, g_data["quat"])
+            try:
+                grasp_pos, grasp_quat = self.load_pose(grasp_path)
+                self.send_tf(object_frame, f"grasp_tcp_{selected_peg}", grasp_pos, grasp_quat)
 
-                # 3. Insert Center 발행 (별도 dict 관리)
-                self.send_tf(object_frame, f"insert_center_{selected_peg}", i_data["pos"], i_data["quat"])
+                pre_grasp_path = os.path.join(self.fixed_pose_root, selected_peg, 'pre_grasp_tcp.json')
+                if os.path.exists(pre_grasp_path):
+                    pre_pos, pre_quat = self.load_pose(pre_grasp_path)
+                else:
+                    pre_pos = [grasp_pos[0], grasp_pos[1], grasp_pos[2] + self.PRE_GRASP_OFFSET_Z]
+                    pre_quat = grasp_quat
+                self.send_tf(object_frame, f"pre_grasp_tcp_{selected_peg}", pre_pos, pre_quat)
+
+                insert_center_path = os.path.join(self.fixed_pose_root, selected_peg, 'insert_center.json')
+                if not os.path.exists(insert_center_path) and selected_peg == 'part11-2':
+                    insert_center_path = os.path.join(self.fixed_pose_root, 'part11', 'insert_center.json')
+
+                if os.path.exists(insert_center_path):
+                    insert_pos, insert_quat = self.load_pose(insert_center_path)
+                    self.send_tf(object_frame, f"insert_center_{selected_peg}", insert_pos, insert_quat)
+            except Exception as e:
+                rospy.logwarn_throttle(2.0, f"Failed to publish JSON-based pose TF for {selected_peg}: {e}")
 
             rate.sleep()
 
