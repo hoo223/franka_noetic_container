@@ -1250,7 +1250,18 @@ class ControllerSwitcher:
         rospy.loginfo("Trajectory generation logic should be implemented here.")
 
     def approach(self):
-        self.move_tcp_xyz(dx=0, dy=0, dz=0.15)
+        current_tcp_pose = self.get_current_tcp_pose()
+        target_lift_z_base = 0.15
+        if current_tcp_pose.position.z > target_lift_z_base:
+            target_lift_z_base = 0.5 * (current_tcp_pose.position.z + target_lift_z_base)
+        dz_to_lift = target_lift_z_base - current_tcp_pose.position.z
+        if abs(dz_to_lift) > 0.001:
+            self.move_tcp_xyz(dx=0, dy=0, dz=dz_to_lift)
+        else:
+            rospy.loginfo(
+                f"Current TCP z ({current_tcp_pose.position.z:.3f}) is already at "
+                f"target lift z ({target_lift_z_base:.3f})."
+            )
         current_tcp_pose = self.get_current_tcp_pose()
         # target_frame = self.measured_pre_goal_tcp_frame
         target_frame = self.pre_goal_tcp_frame
