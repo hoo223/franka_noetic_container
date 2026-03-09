@@ -173,8 +173,8 @@ goal_pose_path = {
     # "part11": "/root/share/catkin_ws/src/franka_interface/scripts/fixed_pose/part11/grasp_tcp.json"
 }
 
-PRE_GRASP_OFFSET_Z = 0.07  # 4cm
-PRE_GOAL_OFFSET_Z = 0.033  # 5cm
+PRE_GRASP_OFFSET_Z = 0.07  # 7cm
+PRE_GOAL_OFFSET_Z = 0.03  # 5cm
 GRIPPER_MAX_WIDTH = 0.0396 * 2
 
 def get_transformed_pose(base_pose, relative_pose):

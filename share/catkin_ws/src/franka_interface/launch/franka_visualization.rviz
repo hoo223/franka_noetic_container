@@ -92,7 +92,7 @@ Visualization Manager:
         insert_center_part11:
           Value: false
         memory_part11:
-          Value: false
+          Value: true
         object_part1:
           Value: true
         object_part11:
@@ -152,7 +152,7 @@ Visualization Manager:
         pre_goal_tcp_part11:
           Value: false
         pre_grasp_tcp_part11:
-          Value: false
+          Value: true
         world:
           Value: true
       Marker Alpha: 0.5
@@ -487,7 +487,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 0.8927726149559021
+      Distance: 0.272011399269104
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -495,17 +495,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.6053547263145447
-        Y: 0.40688639879226685
-        Z: -4.6343529902515e-07
+        X: 0.5080466866493225
+        Y: 0.1658463478088379
+        Z: -5.636256332763878e-07
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9597975611686707
+      Pitch: 0.05979735404253006
       Target Frame: <Fixed Frame>
-      Yaw: 0.3151116967201233
+      Yaw: 0.24511165916919708
     Saved: ~
 Window Geometry:
   Displays:
