@@ -318,11 +318,20 @@ class SocketPoseRegisterNode:
 
         p = pose.pose.position
         q = pose.pose.orientation
-        print("\n" + "-" * 50)
-        print(f"{memory_frame} wrt {self.base_frame}")
-        print(f"position    : x={p.x:.6f}, y={p.y:.6f}, z={p.z:.6f}")
-        print(f"orientation : x={q.x:.6f}, y={q.y:.6f}, z={q.z:.6f}, w={q.w:.6f}")
-        print("-" * 50)
+        pose_dict = {
+            "position": {
+                "x": p.x,
+                "y": p.y,
+                "z": p.z,
+            },
+            "orientation": {
+                "x": q.x,
+                "y": q.y,
+                "z": q.z,
+                "w": q.w,
+            },
+        }
+        print(json.dumps(pose_dict, indent=4))
         return True
 
     def activate_socket_view_control(self):

@@ -47,6 +47,10 @@ class PoseTransformer:
             selected_peg = str(rospy.get_param('/selected_peg', 'part11'))
             object_frame = f"memory_{selected_peg}"
 
+            if selected_peg == 'part1':
+                rate.sleep()
+                continue
+
             grasp_path = os.path.join(self.fixed_pose_root, selected_peg, 'grasp_tcp.json')
             if not os.path.exists(grasp_path):
                 rospy.logwarn_throttle(2.0, f"Missing grasp_tcp.json for {selected_peg}: {grasp_path}")

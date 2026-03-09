@@ -39,6 +39,7 @@ OPEN_GRIPPER = 'o'
 CLOSE_GRIPPER = 'c'
 GRASPING = 'g'
 REGISTER_FRAMES = 'f'
+SELECT_HOLE_POSE = 'j'
 
 SET_VIEWPOINT = '0'
 MOVE_TO_HOME = '1'
@@ -65,6 +66,7 @@ MODE_DICT = {
     'c': 'CLOSE_GRIPPER',
     'g': 'GRASPING',
     'f': 'REGISTER_FRAMES',
+    'j': 'SELECT_HOLE_POSE',
     '0': 'SET_VIEWPOINT',
     '1': 'MOVE_TO_HOME',
     '2': 'MOVE_TO_VIEWPOINT',
@@ -391,6 +393,77 @@ class ControllerSwitcher:
         # )
 
         self.publish_all_static_tfs()
+
+    def list_hole_pose_candidates(self):
+        """part1 폴더에서 선택 가능한 current*.json 목록을 반환"""
+        hole_dir = os.path.join(self.fixed_pose_root, self.hole_name)
+        if not os.path.isdir(hole_dir):
+            return []
+
+        candidates = []
+        for filename in os.listdir(hole_dir):
+            if not filename.endswith('.json'):
+                continue
+            if not filename.startswith('current'):
+                continue
+            candidates.append(filename)
+
+        def sort_key(name):
+            if name == 'current.json':
+                return (0, 0, name)
+            stem = name[:-5]  # remove .json
+            if stem.startswith('current_'):
+                suffix = stem.split('current_', 1)[1]
+                if suffix.isdigit():
+                    return (1, int(suffix), name)
+            return (2, 0, name)
+
+        candidates.sort(key=sort_key)
+        return candidates
+
+    def select_hole_pose_menu(self):
+        """Hole 기준 포즈 파일(current*.json)을 메뉴에서 선택"""
+        candidates = self.list_hole_pose_candidates()
+        if not candidates:
+            rospy.logwarn(f"No current*.json files found in {os.path.join(self.fixed_pose_root, self.hole_name)}")
+            return
+
+        print("\nSelect hole pose file:")
+        for idx, name in enumerate(candidates, start=1):
+            print(f"  {idx}. {name}")
+
+        user_input = input("Choose index or filename: ").strip()
+        if not user_input:
+            rospy.logwarn("No input provided. Hole pose selection cancelled.")
+            return
+
+        selected_name = None
+        if user_input.isdigit():
+            selected_idx = int(user_input) - 1
+            if 0 <= selected_idx < len(candidates):
+                selected_name = candidates[selected_idx]
+        elif user_input in candidates:
+            selected_name = user_input
+
+        if selected_name is None:
+            rospy.logwarn("Invalid selection. Please choose a valid index or filename.")
+            return
+
+        selected_path = os.path.join(self.fixed_pose_root, self.hole_name, selected_name)
+        try:
+            hole_pose_dict = json.load(open(selected_path, 'r'))
+        except Exception as e:
+            rospy.logerr(f"Failed to load selected hole pose file {selected_path}: {e}")
+            return
+
+        self.hole_pose_file = selected_path
+        self.update_fixed_pose(
+            pose_data=hole_pose_dict,
+            parent_frame=self.base_frame,
+            child_frame=self.hole_frame
+        )
+        self.publish_all_static_tfs()
+        rospy.loginfo(f"Switched hole pose file to: {self.hole_pose_file}")
 
     def load_goal_matrix(self, goal_pose_path):
         """txt(4x4) 또는 json(position/orientation) goal pose를 로드"""
@@ -873,7 +946,10 @@ class ControllerSwitcher:
         # 객체 선택 로직을 여기에 추가합니다.
         # sam2 노드 동작 요청
         self.selected_object = obj_name
-        self.update_selected_peg(obj_name)
+        if obj_name != self.hole_name:
+            self.update_selected_peg(obj_name)
+        else:
+            rospy.loginfo("Hole selected: keep /selected_peg unchanged to avoid grasp pose dependency.")
 
         msg = String()
         msg.data = obj_name
@@ -1178,35 +1254,58 @@ class ControllerSwitcher:
         current_tcp_pose = self.get_current_tcp_pose()
         # target_frame = self.measured_pre_goal_tcp_frame
         target_frame = self.pre_goal_tcp_frame
-        # current_tcp_pose_stamped = self.get_pose_from_tf(self.tcp_frame)
         pre_goal_tcp_pose_stamped = self.get_pose_from_tf(target_frame)
+        if not pre_goal_tcp_pose_stamped:
+            rospy.logwarn(f"Failed to get target pose from TF: {target_frame}")
+            return False
 
-        dx = pre_goal_tcp_pose_stamped.pose.position.x - current_tcp_pose.position.x
-        dy = pre_goal_tcp_pose_stamped.pose.position.y - current_tcp_pose.position.y
-        # self.move_tcp_xyz(dx=dx, dy=dy, dz=0)
+        rospy.loginfo(f"Moving {self.tcp_frame} to {target_frame} with XY-first strategy...")
+        target_pose = pre_goal_tcp_pose_stamped.pose
+        target_pose.orientation = self.normalize_quaternion(target_pose.orientation)
 
-        # 1. Pre-Grasp 위치로 이동 (일반 PTP 이동)
-        rospy.loginfo(f"Moving {self.tcp_frame} to {target_frame}...")
-        if pre_goal_tcp_pose_stamped:
-            rospy.loginfo("Approaching Pre-Goal Point (Cartesian Path)...")
-            target_pose = pre_goal_tcp_pose_stamped.pose
-            target_pose.orientation = self.normalize_quaternion(target_pose.orientation)
-            waypoints = [target_pose]
-            (plan, fraction) = self.arm.compute_cartesian_path(waypoints, 0.01, False)
-            if fraction > 0.9: # 경로 생성 성공률이 높을 때만 실행
-                # 천천히 이동하도록 궤적 수정
-                plan = self.arm.retime_trajectory(
-                    self.arm.get_current_state(),
-                    plan,
-                    velocity_scaling_factor=0.3,
-                    acceleration_scaling_factor=0.1,
-                    algorithm="time_optimal_trajectory_generation"  # ROS1 MoveIt에서 흔히 사용
-                )
-                self.arm.execute(plan, wait=True)
-                rospy.loginfo("Pre-Goal position reachedo!")
-            else:
-                rospy.logwarn(f"Cartesian path planning to Pre-Goal failed (Fraction: {fraction})")
-                return False
+        # Step 1) XY 먼저 정렬 (현재 Z 유지)
+        xy_pose = copy.deepcopy(current_tcp_pose)
+        xy_pose.position.x = target_pose.position.x
+        xy_pose.position.y = target_pose.position.y
+        xy_pose.orientation = target_pose.orientation
+
+        rospy.loginfo("Step 1/2: Moving in XY plane (keep current Z)...")
+        plan_xy, fraction_xy = self.arm.compute_cartesian_path([xy_pose], 0.01, False)
+        if fraction_xy <= 0.9:
+            rospy.logwarn(f"Cartesian XY planning failed (Fraction: {fraction_xy})")
+            return False
+
+        plan_xy = self.arm.retime_trajectory(
+            self.arm.get_current_state(),
+            plan_xy,
+            velocity_scaling_factor=0.3,
+            acceleration_scaling_factor=0.1,
+            algorithm="time_optimal_trajectory_generation"
+        )
+        self.arm.execute(plan_xy, wait=True)
+
+        # Step 2) Z축으로만 하강 (XY 유지)
+        current_after_xy = self.get_current_tcp_pose()
+        z_pose = copy.deepcopy(current_after_xy)
+        z_pose.position.z = target_pose.position.z
+        z_pose.orientation = target_pose.orientation
+
+        rospy.loginfo("Step 2/2: Descending along Z axis...")
+        plan_z, fraction_z = self.arm.compute_cartesian_path([z_pose], 0.01, False)
+        if fraction_z <= 0.9:
+            rospy.logwarn(f"Cartesian Z planning failed (Fraction: {fraction_z})")
+            return False
+
+        plan_z = self.arm.retime_trajectory(
+            self.arm.get_current_state(),
+            plan_z,
+            velocity_scaling_factor=0.2,
+            acceleration_scaling_factor=0.08,
+            algorithm="time_optimal_trajectory_generation"
+        )
+        self.arm.execute(plan_z, wait=True)
+        rospy.loginfo("Pre-Goal position reached.")
+        return True
 
     def print_guide(self, current_mode):
         print("\n" + "="*50)
@@ -1220,6 +1319,7 @@ class ControllerSwitcher:
         print(" Press 'h': Select Hole as Target Object")
         print(" Press 'p': Select Peg as Target Object")
         print(" Press 'f': Register Frames")
+        print(" Press 'j': Select Hole Pose (current_x.json)")
         print(" Press '0': Set Viewpoint Pose")
         print(" Press '1': Move to Home")
         print(" Press '2': Move to Viewpoint")
@@ -1316,6 +1416,8 @@ class ControllerSwitcher:
             return rospy.signal_shutdown("User requested shutdown.") 
         elif key == SELECT_HOLE: # Select Hole
             self.select_object(self.hole_name); 
+        elif key == SELECT_HOLE_POSE: # Select Hole Pose
+            self.select_hole_pose_menu()
         elif key == SELECT_PEG: # Select Peg
             # get peg number from keyboard input
             peg_input = input("Enter peg number/name (e.g. 11, 11-2, part12): ").strip()
