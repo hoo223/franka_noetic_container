@@ -650,6 +650,11 @@ class ControllerSwitcher:
             rospy.logerr("move_to_home: Action server not found.")
             return
 
+        rospy.loginfo("move_to_home: Lifting TCP by +5cm on base Z before homing...")
+        if not self.move_tcp_xyz(0.0, 0.0, 0.05):
+            rospy.logwarn("move_to_home: Failed to lift TCP by +5cm. Home motion aborted.")
+            return
+
         try:
             joint_state = rospy.wait_for_message('/franka_state_controller/joint_states', JointState, timeout=2.0)
             initial_pose = dict(zip(joint_state.name, joint_state.position))
@@ -834,6 +839,7 @@ class ControllerSwitcher:
             # 1. 파일에서 데이터 로드
             with open(file_path, 'r') as f:
                 target_viewpoint = json.load(f)
+                print(f"\n[LOADED VIEWPOINT] {target_viewpoint}")
 
             # 2. 액션 서버 확인
             if not self.trajectory_client.wait_for_server(timeout=rospy.Duration(2.0)):
