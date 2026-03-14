@@ -179,6 +179,26 @@ PRE_GRASP_OFFSET_Z = 0.07  # 7cm
 PRE_GOAL_OFFSET_Z = 0.03  # 5cm
 GRIPPER_MAX_WIDTH = 0.0396 * 2
 
+# Pre-goal position noise configuration
+# mode: 'none', 'xyz', 'xy', 'z', 'custom'
+PRE_GOAL_NOISE_MODE = 'none'
+PRE_GOAL_NOISE_RANGE_M = {
+    'x': (-0.002, 0.002),
+    'y': (-0.002, 0.002),
+    'z': (-0.002, 0.002),
+}
+PRE_GOAL_NOISE_STEP_M = 0.0002
+
+# Pre-goal orientation noise configuration (RPY in degrees)
+# mode: 'none', 'rpy', 'roll', 'pitch', 'yaw', 'custom'
+PRE_GOAL_ROT_NOISE_MODE = 'none'
+PRE_GOAL_RPY_NOISE_RANGE_DEG = {
+    'r': (-0.0, 0.0),
+    'p': (-0.0, 0.0),
+    'y': (-0.05, 0.05),
+}
+PRE_GOAL_ROT_NOISE_STEP_DEG = 0.1
+
 def get_transformed_pose(base_pose, relative_pose):
     """
     base_pose를 기준으로 relative_pose만큼 떨어진 위치와 회전을 계산합니다.
@@ -233,6 +253,45 @@ class ControllerSwitcher:
             'part9': 0.05,
             'part11': 0.03
         }
+
+        self.pre_goal_noise_mode = str(rospy.get_param('~pre_goal_noise_mode', PRE_GOAL_NOISE_MODE)).lower()
+        self.pre_goal_noise_range_m = {
+            'x': (
+                self._param_float('~pre_goal_noise_x_min_m', PRE_GOAL_NOISE_RANGE_M['x'][0]),
+                self._param_float('~pre_goal_noise_x_max_m', PRE_GOAL_NOISE_RANGE_M['x'][1])
+            ),
+            'y': (
+                self._param_float('~pre_goal_noise_y_min_m', PRE_GOAL_NOISE_RANGE_M['y'][0]),
+                self._param_float('~pre_goal_noise_y_max_m', PRE_GOAL_NOISE_RANGE_M['y'][1])
+            ),
+            'z': (
+                self._param_float('~pre_goal_noise_z_min_m', PRE_GOAL_NOISE_RANGE_M['z'][0]),
+                self._param_float('~pre_goal_noise_z_max_m', PRE_GOAL_NOISE_RANGE_M['z'][1])
+            ),
+        }
+        self.pre_goal_noise_step_m = max(
+            0.0,
+            self._param_float('~pre_goal_noise_step_m', PRE_GOAL_NOISE_STEP_M)
+        )
+        self.pre_goal_rot_noise_mode = str(rospy.get_param('~pre_goal_rot_noise_mode', PRE_GOAL_ROT_NOISE_MODE)).lower()
+        self.pre_goal_rpy_noise_range_deg = {
+            'r': (
+                self._param_float('~pre_goal_noise_roll_min_deg', PRE_GOAL_RPY_NOISE_RANGE_DEG['r'][0]),
+                self._param_float('~pre_goal_noise_roll_max_deg', PRE_GOAL_RPY_NOISE_RANGE_DEG['r'][1])
+            ),
+            'p': (
+                self._param_float('~pre_goal_noise_pitch_min_deg', PRE_GOAL_RPY_NOISE_RANGE_DEG['p'][0]),
+                self._param_float('~pre_goal_noise_pitch_max_deg', PRE_GOAL_RPY_NOISE_RANGE_DEG['p'][1])
+            ),
+            'y': (
+                self._param_float('~pre_goal_noise_yaw_min_deg', PRE_GOAL_RPY_NOISE_RANGE_DEG['y'][0]),
+                self._param_float('~pre_goal_noise_yaw_max_deg', PRE_GOAL_RPY_NOISE_RANGE_DEG['y'][1])
+            ),
+        }
+        self.pre_goal_rot_noise_step_deg = max(
+            0.0,
+            self._param_float('~pre_goal_rot_noise_step_deg', PRE_GOAL_ROT_NOISE_STEP_DEG)
+        )
 
         # 서비스 클라이언트 설정
         self.switch_srv = rospy.ServiceProxy('/controller_manager/switch_controller', SwitchController)
@@ -330,6 +389,9 @@ class ControllerSwitcher:
         # parameter server에 선택된 peg 이름 저장
         rospy.set_param('/selected_peg', peg_name)
 
+    def _param_float(self, name, default):
+        return float(str(rospy.get_param(name, default)))
+
     def load_and_publish_all_saved_poses(self):
         """저장 폴더 내의 모든 _fixed_pose.json 파일을 찾아 TF로 등록"""
 
@@ -348,34 +410,7 @@ class ControllerSwitcher:
             )
             rospy.loginfo(f"Loaded hole fixed pose from {self.hole_pose_file}")
 
-        if self.peg_name in self.goal_pose_path:
-            if os.path.exists(self.goal_pose_path[self.peg_name]):
-                self.goal_pose_data[self.peg_name] = self.load_goal_matrix(self.goal_pose_path[self.peg_name])
-                self.update_fixed_pose(
-                    pose_data=self.goal_pose_data[self.peg_name],
-                    parent_frame=self.hole_frame,
-                    child_frame=f"goal_pose_{self.peg_name}"
-                )
-
-                # Pre-goal 포즈 계산 및 등록
-                pre_goal_pose_dict = copy.deepcopy(self.goal_pose_data[self.peg_name])
-                pre_goal_pose_dict['position']['z'] += PRE_GOAL_OFFSET_Z
-                self.update_fixed_pose(
-                    pose_data=pre_goal_pose_dict,
-                    parent_frame=self.hole_frame,
-                    child_frame=self.pre_goal_frame
-                )
-
-                # Pre-goal TCP 포즈 계산 및 등록
-                pre_goal_grasp_pose = self.get_grasp_pose(self.peg_name)
-                if pre_goal_grasp_pose is not None:
-                    self.update_fixed_pose(
-                        pose_data=pre_goal_grasp_pose,
-                        parent_frame=self.pre_goal_frame,
-                        child_frame=self.pre_goal_tcp_frame
-                    )
-                else:
-                    rospy.logwarn(f"Skipped {self.pre_goal_tcp_frame}: grasp pose is unavailable for {self.peg_name}")
+        self.update_goal_related_frames(with_noise=True)
 
         # Measured goal pose 등록
         # self.update_fixed_pose(
@@ -393,6 +428,176 @@ class ControllerSwitcher:
         # )
 
         self.publish_all_static_tfs()
+
+    def add_position_noise(self, pose_dict):
+        noisy_pose = copy.deepcopy(pose_dict)
+        axes = {'x': False, 'y': False, 'z': False}
+
+        def sample_with_step(lo, hi, step):
+            lo = float(lo)
+            hi = float(hi)
+            if lo > hi:
+                lo, hi = hi, lo
+
+            if step <= 0.0:
+                return float(np.random.uniform(lo, hi))
+
+            start_idx = int(np.ceil(lo / step))
+            end_idx = int(np.floor(hi / step))
+            if start_idx <= end_idx:
+                return float(np.random.randint(start_idx, end_idx + 1) * step)
+
+            sampled = float(np.random.uniform(lo, hi))
+            snapped = round(sampled / step) * step
+            return float(min(max(snapped, lo), hi))
+
+        mode = (self.pre_goal_noise_mode or PRE_GOAL_NOISE_MODE).lower()
+        if mode == 'xy':
+            axes['x'] = True
+            axes['y'] = True
+        elif mode == 'z':
+            axes['z'] = True
+        elif mode == 'custom':
+            axes = {'x': True, 'y': True, 'z': True}
+        elif mode == 'none':
+            pass
+        else:
+            axes = {'x': True, 'y': True, 'z': True}
+
+        noise = {}
+        for axis, enabled in axes.items():
+            min_v, max_v = self.pre_goal_noise_range_m[axis]
+            lo = min(min_v, max_v)
+            hi = max(min_v, max_v)
+            delta = sample_with_step(lo, hi, self.pre_goal_noise_step_m) if enabled else 0.0
+            noisy_pose['position'][axis] += delta
+            noise[axis] = delta
+
+        rospy.loginfo(
+            f"Applied pre-goal noise [m]: dx={noise['x']:.4f}, dy={noise['y']:.4f}, dz={noise['z']:.4f} "
+            f"(mode={mode}, x=[{self.pre_goal_noise_range_m['x'][0]:.4f},{self.pre_goal_noise_range_m['x'][1]:.4f}], "
+            f"y=[{self.pre_goal_noise_range_m['y'][0]:.4f},{self.pre_goal_noise_range_m['y'][1]:.4f}], "
+            f"z=[{self.pre_goal_noise_range_m['z'][0]:.4f},{self.pre_goal_noise_range_m['z'][1]:.4f}], "
+            f"step={self.pre_goal_noise_step_m:.4f})"
+        )
+        return noisy_pose
+
+    def add_orientation_noise(self, pose_dict):
+        noisy_pose = copy.deepcopy(pose_dict)
+        axes = {'r': False, 'p': False, 'y': False}
+
+        def sample_with_step(lo, hi, step):
+            lo = float(lo)
+            hi = float(hi)
+            if lo > hi:
+                lo, hi = hi, lo
+
+            if step <= 0.0:
+                return float(np.random.uniform(lo, hi))
+
+            start_idx = int(np.ceil(lo / step))
+            end_idx = int(np.floor(hi / step))
+            if start_idx <= end_idx:
+                return float(np.random.randint(start_idx, end_idx + 1) * step)
+
+            sampled = float(np.random.uniform(lo, hi))
+            snapped = round(sampled / step) * step
+            return float(min(max(snapped, lo), hi))
+
+        mode = (self.pre_goal_rot_noise_mode or PRE_GOAL_ROT_NOISE_MODE).lower()
+        if mode == 'rpy':
+            axes = {'r': True, 'p': True, 'y': True}
+        elif mode == 'roll':
+            axes['r'] = True
+        elif mode == 'pitch':
+            axes['p'] = True
+        elif mode == 'yaw':
+            axes['y'] = True
+        elif mode == 'custom':
+            axes = {'r': True, 'p': True, 'y': True}
+        elif mode == 'none':
+            pass
+        else:
+            axes = {'r': True, 'p': True, 'y': True}
+
+        noise_deg = {}
+        for axis, enabled in axes.items():
+            min_v, max_v = self.pre_goal_rpy_noise_range_deg[axis]
+            lo = min(min_v, max_v)
+            hi = max(min_v, max_v)
+            delta_deg = sample_with_step(lo, hi, self.pre_goal_rot_noise_step_deg) if enabled else 0.0
+            noise_deg[axis] = delta_deg
+
+        q = [
+            noisy_pose['orientation']['x'],
+            noisy_pose['orientation']['y'],
+            noisy_pose['orientation']['z'],
+            noisy_pose['orientation']['w']
+        ]
+        rot_current = R.from_quat(q)
+        rot_noise = R.from_euler(
+            'xyz',
+            [noise_deg['r'], noise_deg['p'], noise_deg['y']],
+            degrees=True
+        )
+
+        # parent frame(hole_frame) 축 기준으로 회전 노이즈 적용
+        q_noisy = (rot_noise * rot_current).as_quat()
+        noisy_pose['orientation']['x'] = q_noisy[0]
+        noisy_pose['orientation']['y'] = q_noisy[1]
+        noisy_pose['orientation']['z'] = q_noisy[2]
+        noisy_pose['orientation']['w'] = q_noisy[3]
+
+        rospy.loginfo(
+            f"Applied pre-goal RPY noise [deg]: dr={noise_deg['r']:.3f}, dp={noise_deg['p']:.3f}, dy={noise_deg['y']:.3f} "
+            f"(mode={mode}, r=[{self.pre_goal_rpy_noise_range_deg['r'][0]:.3f},{self.pre_goal_rpy_noise_range_deg['r'][1]:.3f}], "
+            f"p=[{self.pre_goal_rpy_noise_range_deg['p'][0]:.3f},{self.pre_goal_rpy_noise_range_deg['p'][1]:.3f}], "
+            f"y=[{self.pre_goal_rpy_noise_range_deg['y'][0]:.3f},{self.pre_goal_rpy_noise_range_deg['y'][1]:.3f}], "
+            f"step={self.pre_goal_rot_noise_step_deg:.3f})"
+        )
+        return noisy_pose
+
+    def update_goal_related_frames(self, with_noise=True):
+        if self.peg_name not in self.goal_pose_path:
+            return
+
+        goal_path = self.goal_pose_path[self.peg_name]
+        if not os.path.exists(goal_path):
+            rospy.logwarn(f"Goal pose file not found for {self.peg_name}: {goal_path}")
+            return
+
+        self.goal_pose_data[self.peg_name] = self.load_goal_matrix(goal_path)
+        if not self.goal_pose_data[self.peg_name]:
+            rospy.logwarn(f"Failed to load goal pose for {self.peg_name}")
+            return
+
+        self.update_fixed_pose(
+            pose_data=self.goal_pose_data[self.peg_name],
+            parent_frame=self.hole_frame,
+            child_frame=f"goal_pose_{self.peg_name}"
+        )
+
+        pre_goal_pose_dict = copy.deepcopy(self.goal_pose_data[self.peg_name])
+        pre_goal_pose_dict['position']['z'] += PRE_GOAL_OFFSET_Z
+        if with_noise:
+            pre_goal_pose_dict = self.add_position_noise(pre_goal_pose_dict)
+            pre_goal_pose_dict = self.add_orientation_noise(pre_goal_pose_dict)
+
+        self.update_fixed_pose(
+            pose_data=pre_goal_pose_dict,
+            parent_frame=self.hole_frame,
+            child_frame=self.pre_goal_frame
+        )
+
+        pre_goal_grasp_pose = self.get_grasp_pose(self.peg_name)
+        if pre_goal_grasp_pose is not None:
+            self.update_fixed_pose(
+                pose_data=pre_goal_grasp_pose,
+                parent_frame=self.pre_goal_frame,
+                child_frame=self.pre_goal_tcp_frame
+            )
+        else:
+            rospy.logwarn(f"Skipped {self.pre_goal_tcp_frame}: grasp pose is unavailable for {self.peg_name}")
 
     def list_hole_pose_candidates(self):
         """part1 폴더에서 선택 가능한 current*.json 목록을 반환"""
@@ -457,11 +662,24 @@ class ControllerSwitcher:
             return
 
         self.hole_pose_file = selected_path
+
+        rospy.loginfo(
+            f"Pre-goal noise config: mode={self.pre_goal_noise_mode}, "
+            f"x=[{self.pre_goal_noise_range_m['x'][0]:.4f},{self.pre_goal_noise_range_m['x'][1]:.4f}], "
+            f"y=[{self.pre_goal_noise_range_m['y'][0]:.4f},{self.pre_goal_noise_range_m['y'][1]:.4f}], "
+            f"z=[{self.pre_goal_noise_range_m['z'][0]:.4f},{self.pre_goal_noise_range_m['z'][1]:.4f}], "
+            f"rot_mode={self.pre_goal_rot_noise_mode}, "
+            f"r=[{self.pre_goal_rpy_noise_range_deg['r'][0]:.3f},{self.pre_goal_rpy_noise_range_deg['r'][1]:.3f}], "
+            f"p=[{self.pre_goal_rpy_noise_range_deg['p'][0]:.3f},{self.pre_goal_rpy_noise_range_deg['p'][1]:.3f}], "
+            f"yaw=[{self.pre_goal_rpy_noise_range_deg['y'][0]:.3f},{self.pre_goal_rpy_noise_range_deg['y'][1]:.3f}]"
+        )
+
         self.update_fixed_pose(
             pose_data=hole_pose_dict,
             parent_frame=self.base_frame,
             child_frame=self.hole_frame
         )
+        self.update_goal_related_frames(with_noise=True)
         self.publish_all_static_tfs()
         rospy.loginfo(f"Switched hole pose file to: {self.hole_pose_file}")
 
@@ -1256,6 +1474,10 @@ class ControllerSwitcher:
         rospy.loginfo("Trajectory generation logic should be implemented here.")
 
     def approach(self):
+        # Approach를 호출할 때마다 pre-goal position noise를 재샘플링
+        self.update_goal_related_frames(with_noise=True)
+        self.publish_all_static_tfs()
+
         current_tcp_pose = self.get_current_tcp_pose()
         target_lift_z_base = 0.15
         if current_tcp_pose.position.z > target_lift_z_base:
