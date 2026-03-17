@@ -71,6 +71,7 @@ class DualDeviceController:
         self.joy_sub = rospy.Subscriber("/joystick_command", Float64MultiArray, self.joy_callback)
         self.space_sub = rospy.Subscriber("/spacenav/twist", Twist, self.space_callback)
         self.mode_sub = rospy.Subscriber("/current_mode", String, self.mode_callback)
+        self.target_frame_sub = rospy.Subscriber("/change_target_frame", String, self.target_frame_callback)
         
         self.target_pose_pub = rospy.Publisher("/target_pose", 
                                          PoseStamped, queue_size=1, tcp_nodelay=True)
@@ -82,6 +83,11 @@ class DualDeviceController:
 
     def mode_callback(self, msg):
         self.current_mode = msg.data
+
+    def target_frame_callback(self, msg):
+        self.target_pose_frame = msg.data
+        rospy.loginfo(f"Target pose frame switched to: {self.target_pose_frame}")
+        self.sync_target_with_tf()
 
     def sync_target_with_tf(self):
         """현재 로봇의 실제 포즈를 target_pose에 반영"""

@@ -70,7 +70,7 @@ class PoseTransformer:
                 self.send_tf(object_frame, f"pre_grasp_tcp_{selected_peg}", pre_pos, pre_quat)
 
                 insert_center_path = os.path.join(self.fixed_pose_root, selected_peg, 'insert_center.json')
-                if not os.path.exists(insert_center_path) and selected_peg == 'part11-2':
+                if not os.path.exists(insert_center_path) and selected_peg in ('part11-2', 'part12'):
                     insert_center_path = os.path.join(self.fixed_pose_root, 'part11', 'insert_center.json')
 
                 if os.path.exists(insert_center_path):

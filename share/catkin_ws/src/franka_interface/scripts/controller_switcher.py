@@ -4,6 +4,7 @@
 import json
 import os
 import copy
+import argparse
 import rospy
 import sys
 import select
@@ -170,13 +171,25 @@ measured_goal_tcp_pose_dict = { # wrt panda_link0
 }
 
 goal_pose_path = {
-    "part11": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/test4_20251030_151337_part11_refined_final_pose.txt"
+    "part9": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/20260201_214303_seq1_part9_part9_refined_final_pose.txt",
+    "part11": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/test4_20251030_151337_part11_refined_final_pose.txt",
+    "part11-2": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/20260201_214449_seq3_part11_2_part11_refined_final_pose.txt",
     # "part11": "/root/share/catkin_ws/src/franka_interface/scripts/fixed_pose/part11-2/grasp_tcp.json"
     # "part11": "/root/share/catkin_ws/src/franka_interface/scripts/fixed_pose/part11/grasp_tcp.json"
 }
 
+POSE_FALLBACK_PEG = {
+    # "part11-2": "part11",
+    # "part12": "part11",
+}
+
 PRE_GRASP_OFFSET_Z = 0.07  # 7cm
 PRE_GOAL_OFFSET_Z = 0.03  # 5cm
+PRE_GOAL_OFFSET_Z_BY_PART = {
+    "part11": 0.025,
+    "part11-2": 0.025,
+    "part9": 0.025,
+}
 GRIPPER_MAX_WIDTH = 0.0396 * 2
 
 # Pre-goal position noise configuration
@@ -231,7 +244,7 @@ def get_transformed_pose(base_pose, relative_pose):
     }
 
 class ControllerSwitcher:
-    def __init__(self):
+    def __init__(self, selected_object=None):
         rospy.init_node('controller_switcher_node')
         self.path = os.path.dirname(__file__)
 
@@ -241,17 +254,16 @@ class ControllerSwitcher:
         self.hole_name = "part1"
         self.hole_frame = "object_" + self.hole_name
         self.hole_pose_file = os.path.join(self.fixed_pose_root, self.hole_name, "current.json")
-        
-        self.selected_object = "part11"
+
+        self.selected_object = self.resolve_initial_selected_object(selected_object)
         self.update_selected_peg(self.selected_object)
-        self.target_pose_frame = f"insert_center_{self.selected_object}"
-        rospy.set_param('/target_pose_frame', self.target_pose_frame)
 
         self.target_area_ratio = {
             'part1': 0.18,
             'part7': 0.05,
             'part9': 0.05,
-            'part11': 0.03
+            'part11': 0.03,
+            'part12': 0.03,
         }
 
         self.pre_goal_noise_mode = str(rospy.get_param('~pre_goal_noise_mode', PRE_GOAL_NOISE_MODE)).lower()
@@ -314,6 +326,7 @@ class ControllerSwitcher:
         self.mode_pub = rospy.Publisher('/current_mode', String, queue_size=1, latch=True)
         self.sam2_pub = rospy.Publisher('/sam2_target_object', String, queue_size=1, latch=False)
         self.fp_pub = rospy.Publisher('/fp_target_object', String, queue_size=1, latch=False)
+        self.target_frame_pub = rospy.Publisher('/change_target_frame', String, queue_size=1, latch=True)
         self.joy_pub = rospy.Publisher('/spacenav/joy', Joy, queue_size=1)
         self.policy_reset_pub = rospy.Publisher('/policy/reset', Bool, queue_size=1)
         self.policy_enable_pub = rospy.Publisher('/policy/enable', Bool, queue_size=1)
@@ -369,6 +382,31 @@ class ControllerSwitcher:
 
         self.print_guide(initial_mode)
 
+    def resolve_initial_selected_object(self, selected_object):
+        candidate = selected_object
+        if candidate is None:
+            candidate = rospy.get_param('~selected_object', 'part11')
+
+        candidate = str(candidate).strip()
+        if not candidate:
+            return 'part11'
+
+        if candidate.isdigit():
+            candidate = f"part{candidate}"
+        elif candidate == '11-2':
+            candidate = 'part11-2'
+
+        is_valid = (
+            candidate == self.hole_name or
+            candidate in PEG_NAME_EXTRA or
+            os.path.isdir(os.path.join(self.fixed_pose_root, candidate))
+        )
+        if not is_valid:
+            rospy.logwarn(f"Invalid initial selected_object '{candidate}'. Fallback to 'part11'.")
+            return 'part11'
+
+        return candidate
+
     def update_selected_peg(self, peg_name):
         self.peg_name = peg_name
         self.peg_frame = "object_" + peg_name
@@ -388,9 +426,22 @@ class ControllerSwitcher:
 
         # parameter server에 선택된 peg 이름 저장
         rospy.set_param('/selected_peg', peg_name)
+        self.target_pose_frame = self.insert_center_frame
+        rospy.set_param('/target_pose_frame', self.target_pose_frame)
+
+        if hasattr(self, 'target_frame_pub'):
+            frame_msg = String()
+            frame_msg.data = self.target_pose_frame
+            self.target_frame_pub.publish(frame_msg)
+
+    def _get_pose_fallback_name(self, obj_name):
+        return POSE_FALLBACK_PEG.get(obj_name)
 
     def _param_float(self, name, default):
         return float(str(rospy.get_param(name, default)))
+
+    def get_pre_goal_offset_z(self, peg_name):
+        return PRE_GOAL_OFFSET_Z_BY_PART.get(peg_name, PRE_GOAL_OFFSET_Z)
 
     def load_and_publish_all_saved_poses(self):
         """저장 폴더 내의 모든 _fixed_pose.json 파일을 찾아 TF로 등록"""
@@ -558,13 +609,26 @@ class ControllerSwitcher:
         return noisy_pose
 
     def update_goal_related_frames(self, with_noise=True):
-        if self.peg_name not in self.goal_pose_path:
-            return
+        goal_key = self.peg_name
+        if goal_key not in self.goal_pose_path:
+            fallback_name = self._get_pose_fallback_name(self.peg_name)
+            if fallback_name in self.goal_pose_path:
+                rospy.logwarn(f"Using goal pose fallback for {self.peg_name}: {fallback_name}")
+                goal_key = fallback_name
+            else:
+                return
 
-        goal_path = self.goal_pose_path[self.peg_name]
+        goal_path = self.goal_pose_path[goal_key]
         if not os.path.exists(goal_path):
-            rospy.logwarn(f"Goal pose file not found for {self.peg_name}: {goal_path}")
-            return
+            fallback_name = self._get_pose_fallback_name(self.peg_name)
+            fallback_path = self.goal_pose_path[fallback_name] if fallback_name in self.goal_pose_path else ""
+            if fallback_name is not None and os.path.exists(fallback_path):
+                rospy.logwarn(f"Goal pose file missing for {self.peg_name}. Using {fallback_name}: {fallback_path}")
+                goal_key = fallback_name
+                goal_path = fallback_path
+            else:
+                rospy.logwarn(f"Goal pose file not found for {self.peg_name}: {goal_path}")
+                return
 
         self.goal_pose_data[self.peg_name] = self.load_goal_matrix(goal_path)
         if not self.goal_pose_data[self.peg_name]:
@@ -578,7 +642,8 @@ class ControllerSwitcher:
         )
 
         pre_goal_pose_dict = copy.deepcopy(self.goal_pose_data[self.peg_name])
-        pre_goal_pose_dict['position']['z'] += PRE_GOAL_OFFSET_Z
+        pre_goal_offset_z = self.get_pre_goal_offset_z(self.peg_name)
+        pre_goal_pose_dict['position']['z'] += pre_goal_offset_z
         if with_noise:
             pre_goal_pose_dict = self.add_position_noise(pre_goal_pose_dict)
             pre_goal_pose_dict = self.add_orientation_noise(pre_goal_pose_dict)
@@ -1427,14 +1492,15 @@ class ControllerSwitcher:
             except Exception as e:
                 rospy.logwarn(f"Failed to load insert center pose from {insert_center_path}: {e}")
 
-        if obj_name == 'part11-2':
-            part11_insert_center_path = os.path.join(self.fixed_pose_root, 'part11', 'insert_center.json')
-            if os.path.exists(part11_insert_center_path):
+        fallback_name = self._get_pose_fallback_name(obj_name)
+        if fallback_name is not None:
+            fallback_insert_center_path = os.path.join(self.fixed_pose_root, fallback_name, 'insert_center.json')
+            if os.path.exists(fallback_insert_center_path):
                 try:
-                    rospy.loginfo("Using part11 insert_center.json for part11-2")
-                    return self.load_pose_json(part11_insert_center_path)
+                    rospy.loginfo(f"Using {fallback_name} insert_center.json for {obj_name}")
+                    return self.load_pose_json(fallback_insert_center_path)
                 except Exception as e:
-                    rospy.logwarn(f"Failed to load insert center pose from {part11_insert_center_path}: {e}")
+                    rospy.logwarn(f"Failed to load insert center pose from {fallback_insert_center_path}: {e}")
 
         return None
 
@@ -1719,5 +1785,14 @@ class ControllerSwitcher:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
 
 if __name__ == '__main__':
-    switcher = ControllerSwitcher()
+    parser = argparse.ArgumentParser(description='Controller switcher node')
+    parser.add_argument(
+        '--selected_object',
+        type=str,
+        default='part11-2',
+        help='Initial target object (e.g. part11, 11, 11-2, part12, part1)'
+    )
+    args = parser.parse_args(rospy.myargv(argv=sys.argv)[1:])
+
+    switcher = ControllerSwitcher(selected_object=args.selected_object)
     switcher.run()
