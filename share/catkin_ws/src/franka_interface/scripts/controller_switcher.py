@@ -1789,7 +1789,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--selected_object',
         type=str,
-        default='part11-2',
+        default='part11',
         help='Initial target object (e.g. part11, 11, 11-2, part12, part1)'
     )
     args = parser.parse_args(rospy.myargv(argv=sys.argv)[1:])

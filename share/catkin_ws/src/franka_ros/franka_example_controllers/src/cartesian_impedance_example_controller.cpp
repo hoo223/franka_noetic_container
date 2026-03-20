@@ -224,7 +224,7 @@ void CartesianImpedanceExampleController::complianceParamCallback(
   cartesian_damping_target_.topLeftCorner(3, 3)
       << 2.0 * sqrt(config.translational_stiffness) * Eigen::Matrix3d::Identity();
   cartesian_damping_target_.bottomRightCorner(3, 3)
-      << 2.0 * sqrt(config.rotational_stiffness) * Eigen::Matrix3d::Identity();
+      << config.rotational_damping * Eigen::Matrix3d::Identity();
   nullspace_stiffness_target_ = config.nullspace_stiffness;
 }
 
