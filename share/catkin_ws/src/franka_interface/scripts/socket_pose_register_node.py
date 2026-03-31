@@ -50,6 +50,7 @@ class SocketPoseRegisterNode:
             'part7': 0.05,
             'part9': 0.05,
             'part11': 0.03,
+            'part17': 0.03,
         }
         self.mask_data = None
         self.bridge = CvBridge()

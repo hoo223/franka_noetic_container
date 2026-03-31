@@ -174,6 +174,7 @@ goal_pose_path = {
     "part9": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/20260201_214303_seq1_part9_part9_refined_final_pose.txt",
     "part11": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/test4_20251030_151337_part11_refined_final_pose.txt",
     "part11-2": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/20260201_214449_seq3_part11_2_part11_refined_final_pose.txt",
+    "part17": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/20260201_214643_seq6_part17_part17_refined_final_pose.txt",
     # "part11": "/root/share/catkin_ws/src/franka_interface/scripts/fixed_pose/part11-2/grasp_tcp.json"
     # "part11": "/root/share/catkin_ws/src/franka_interface/scripts/fixed_pose/part11/grasp_tcp.json"
 }
@@ -189,6 +190,7 @@ PRE_GOAL_OFFSET_Z_BY_PART = {
     "part11": 0.025,
     "part11-2": 0.025,
     "part9": 0.025,
+    "part17": 0.025,
 }
 GRIPPER_MAX_WIDTH = 0.0396 * 2
 
@@ -264,6 +266,7 @@ class ControllerSwitcher:
             'part9': 0.05,
             'part11': 0.03,
             'part12': 0.03,
+            'part17': 0.01,
         }
 
         self.pre_goal_noise_mode = str(rospy.get_param('~pre_goal_noise_mode', PRE_GOAL_NOISE_MODE)).lower()
@@ -1789,7 +1792,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--selected_object',
         type=str,
-        default='part11',
+        default='part17',
         help='Initial target object (e.g. part11, 11, 11-2, part12, part1)'
     )
     args = parser.parse_args(rospy.myargv(argv=sys.argv)[1:])
