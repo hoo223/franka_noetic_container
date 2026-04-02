@@ -187,8 +187,8 @@ POSE_FALLBACK_PEG = {
 PRE_GRASP_OFFSET_Z = 0.07  # 7cm
 PRE_GOAL_OFFSET_Z = 0.03  # 5cm
 PRE_GOAL_OFFSET_Z_BY_PART = {
-    "part11": 0.025,
-    "part11-2": 0.025,
+    "part11": 0.03,
+    "part11-2": 0.03,
     "part9": 0.025,
     "part17": 0.025,
 }
@@ -657,7 +657,17 @@ class ControllerSwitcher:
             child_frame=self.pre_goal_frame
         )
 
-        pre_goal_grasp_pose = self.get_grasp_pose(self.peg_name)
+        pre_goal_grasp_pose = None
+        if self.is_grasped and self.peg_name == 'part11':
+            pre_goal_grasp_pose = self.get_live_grasp_pose_from_tf(self.peg_frame_filtered)
+            if pre_goal_grasp_pose is not None:
+                rospy.loginfo(
+                    f"Using live grasp TF for {self.pre_goal_tcp_frame} from {self.peg_frame_filtered} -> {self.tcp_frame}"
+                )
+
+        if pre_goal_grasp_pose is None:
+            pre_goal_grasp_pose = self.get_grasp_pose(self.peg_name)
+
         if pre_goal_grasp_pose is not None:
             self.update_fixed_pose(
                 pose_data=pre_goal_grasp_pose,
@@ -1475,6 +1485,32 @@ class ControllerSwitcher:
 
         return None
 
+    def get_live_grasp_pose_from_tf(self, object_memory_frame):
+        """memory object frame 기준 현재 TCP pose를 grasp pose로 반환"""
+        try:
+            trans = self.tf_buffer.lookup_transform(
+                object_memory_frame,
+                self.tcp_frame,
+                rospy.Time(0),
+                rospy.Duration(0.2)
+            )
+            return {
+                'position': {
+                    'x': trans.transform.translation.x,
+                    'y': trans.transform.translation.y,
+                    'z': trans.transform.translation.z
+                },
+                'orientation': {
+                    'x': trans.transform.rotation.x,
+                    'y': trans.transform.rotation.y,
+                    'z': trans.transform.rotation.z,
+                    'w': trans.transform.rotation.w
+                }
+            }
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            rospy.logwarn(f"Failed to read live grasp TF {object_memory_frame} -> {self.tcp_frame}: {e}")
+            return None
+
     def get_pre_grasp_pose(self, obj_name, grasp_pose):
         pre_grasp_path = os.path.join(self.fixed_pose_root, obj_name, 'pre_grasp_tcp.json')
         if os.path.exists(pre_grasp_path):
@@ -1792,7 +1828,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--selected_object',
         type=str,
-        default='part17',
+        default='part11',
         help='Initial target object (e.g. part11, 11, 11-2, part12, part1)'
     )
     args = parser.parse_args(rospy.myargv(argv=sys.argv)[1:])
