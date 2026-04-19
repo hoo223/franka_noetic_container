@@ -187,8 +187,8 @@ POSE_FALLBACK_PEG = {
 PRE_GRASP_OFFSET_Z = 0.07  # 7cm
 PRE_GOAL_OFFSET_Z = 0.03  # 5cm
 PRE_GOAL_OFFSET_Z_BY_PART = {
-    "part11": 0.03,
-    "part11-2": 0.03,
+    "part11": 0.035,
+    "part11-2": 0.05,
     "part9": 0.025,
     "part17": 0.025,
 }
@@ -196,11 +196,11 @@ GRIPPER_MAX_WIDTH = 0.0396 * 2
 
 # Pre-goal position noise configuration
 # mode: 'none', 'xyz', 'xy', 'z', 'custom'
-PRE_GOAL_NOISE_MODE = 'none'
+PRE_GOAL_NOISE_MODE = 'xy'
 PRE_GOAL_NOISE_RANGE_M = {
     'x': (-0.002, 0.002),
     'y': (-0.002, 0.002),
-    'z': (-0.002, 0.002),
+    'z': (-0.01, -0.01),
 }
 PRE_GOAL_NOISE_STEP_M = 0.0002
 
@@ -208,9 +208,9 @@ PRE_GOAL_NOISE_STEP_M = 0.0002
 # mode: 'none', 'rpy', 'roll', 'pitch', 'yaw', 'custom'
 PRE_GOAL_ROT_NOISE_MODE = 'none'
 PRE_GOAL_RPY_NOISE_RANGE_DEG = {
-    'r': (-0.0, 0.0),
-    'p': (-0.0, 0.0),
-    'y': (-0.05, 0.05),
+    'r': (-0.5, 0.5),
+    'p': (-0.5, 0.5),
+    'y': (-0.5, 0.5),
 }
 PRE_GOAL_ROT_NOISE_STEP_DEG = 0.1
 
@@ -246,7 +246,7 @@ def get_transformed_pose(base_pose, relative_pose):
     }
 
 class ControllerSwitcher:
-    def __init__(self, selected_object=None):
+    def __init__(self, selected_object=None, tf_live_update='off'):
         rospy.init_node('controller_switcher_node')
         self.path = os.path.dirname(__file__)
 
@@ -259,12 +259,15 @@ class ControllerSwitcher:
 
         self.selected_object = self.resolve_initial_selected_object(selected_object)
         self.update_selected_peg(self.selected_object)
+        self.tf_live_update_enabled = str(tf_live_update).strip().lower() == 'on'
+        rospy.loginfo(f"TF live update: {'ON' if self.tf_live_update_enabled else 'OFF'}")
 
         self.target_area_ratio = {
             'part1': 0.18,
             'part7': 0.05,
             'part9': 0.05,
             'part11': 0.03,
+            'part11-2': 0.03,
             'part12': 0.03,
             'part17': 0.01,
         }
@@ -322,6 +325,7 @@ class ControllerSwitcher:
         # /set_controller_mode 토픽으로 "1", "2", "3" 또는 컨트롤러 이름을 보내면 바뀝니다.
         self.mode_sub = rospy.Subscriber('/set_controller_mode', String, self.mode_callback)
         self.gripper_joint_sub = rospy.Subscriber('/franka_gripper/joint_states', JointState, self.gripper_joint_callback)
+        self.arm_joint_sub = rospy.Subscriber('/franka_state_controller/joint_states', JointState, self.arm_joint_callback)
         self.pose_sub = None
         self.pose_received = False
 
@@ -356,6 +360,8 @@ class ControllerSwitcher:
         self.latest_gripper_width = None
         self.last_gripper_state_stamp = rospy.Time(0)
         self.gripper_state_timeout = 0.5
+        self.latest_arm_joint_positions = {}
+        self.last_arm_joint_state_stamp = rospy.Time(0)
         
         # Grasp 상태 발행용 Publisher
         self.grasp_status_pub = rospy.Publisher('/is_grasped', Bool, queue_size=1, latch=True)
@@ -658,7 +664,7 @@ class ControllerSwitcher:
         )
 
         pre_goal_grasp_pose = None
-        if self.is_grasped and self.peg_name == 'part11':
+        if self.tf_live_update_enabled and self.is_grasped and self.peg_name == 'part11':
             pre_goal_grasp_pose = self.get_live_grasp_pose_from_tf(self.peg_frame_filtered)
             if pre_goal_grasp_pose is not None:
                 rospy.loginfo(
@@ -854,6 +860,17 @@ class ControllerSwitcher:
             self.is_gripper_closed = (gripper_width + 0.005 < GRIPPER_MAX_WIDTH)
         except (ValueError, IndexError):
             rospy.logwarn_throttle(1.0, "finger joints not found in /franka_gripper/joint_states")
+
+    def arm_joint_callback(self, msg):
+        self.latest_arm_joint_positions = dict(zip(msg.name, msg.position))
+        self.last_arm_joint_state_stamp = rospy.Time.now()
+
+    def get_latest_arm_joint(self, joint_name, timeout_sec=0.5):
+        if not self.latest_arm_joint_positions:
+            return None
+        if (rospy.Time.now() - self.last_arm_joint_state_stamp).to_sec() > timeout_sec:
+            return None
+        return self.latest_arm_joint_positions.get(joint_name)
 
     def _mask_callback(self, msg):
         try:
@@ -1173,75 +1190,132 @@ class ControllerSwitcher:
         rospy.loginfo(f"Starting Zoom to {obj_name}...")
         self.bridge = CvBridge()
         self.mask_data = None
-        
         sub = rospy.Subscriber(f"/sam2_mask/{obj_name}", Image, self._mask_callback)
-        
-        # 제어 게인 (튜닝 필요)
-        gain_trans = 0.0003
-        rate = rospy.Rate(30)
-        
+
+        # Visual servo tuning
+        gain_xy = 0.00100
+        max_xy_step_m = 0.025
+        forward_step_m = 0.010
+        deadzone_ratio = 1.0 / 3.0
+        stop_px = 12
+
+        # joint7(=wrist) drift suppression by TCP yaw only
+        q7_target = 0.0
+        q7_deadband = np.deg2rad(2.0)
+        k_yaw = 0.18
+        max_yaw_step = np.deg2rad(0.8)
+        max_yaw_total = np.deg2rad(20.0)
+
+        stable_frames = 0
+        stable_required = 4
+        yaw_offset = 0.0
+        q_lock = None
+        rate = rospy.Rate(45)
+
         self.pose_pub = rospy.Publisher('/cartesian_pose_controller/tcp_target_pose', PoseStamped, queue_size=1)
 
-        while not rospy.is_shutdown():
-            if self.mask_data is None:
-                continue
-
-            try:
-                # 1. TF에서 현재 TCP 포즈 가져오기
-                trans = self.tf_buffer.lookup_transform("panda_link0", "panda_hand_tcp", rospy.Time(0))
-                
-                # moments 및 오차 계산
-                moments = cv2.moments(self.mask_data)
-                if moments['m00'] <= 0:
+        try:
+            while not rospy.is_shutdown():
+                if self.mask_data is None:
+                    rate.sleep()
                     continue
 
-                u, v = int(moments['m10']/moments['m00']), int(moments['m01']/moments['m00'])
-                h, w = self.mask_data.shape
-                err_u, err_v = (w/2 - u), (h/2 - v)
-                area_ratio = moments['m00'] / (h * w * 255.0)
+                try:
+                    tcp_tf = self.tf_buffer.lookup_transform(self.base_frame, self.tcp_frame, rospy.Time(0))
+                    cam_tf = self.tf_buffer.lookup_transform(self.base_frame, "camera_link", rospy.Time(0))
 
-                # 2. 카메라 좌표계 기준의 이동량(Delta) 정의
-                # 카메라 좌표계 관습: Z(전진), X(우측), Y(하단)
-                # 이미지 u 오차 -> 카메라 X 이동 / 이미지 v 오차 -> 카메라 Y 이동
-                d_x_cam = err_u * gain_trans
-                d_y_cam = err_v * gain_trans
-                d_z_cam = 0.01 if area_ratio < target_area_ratio else 0.0
+                    if q_lock is None:
+                        q_lock = [
+                            tcp_tf.transform.rotation.x,
+                            tcp_tf.transform.rotation.y,
+                            tcp_tf.transform.rotation.z,
+                            tcp_tf.transform.rotation.w,
+                        ]
 
-                # 3. 카메라 Delta를 베이스 좌표계(panda_link0)로 변환
-                # 현재 TCP의 회전(Quaternion)을 행렬로 변환
-                import tf.transformations as tft
-                q = [trans.transform.rotation.x, trans.transform.rotation.y, 
-                     trans.transform.rotation.z, trans.transform.rotation.w]
-                rotation_matrix = tft.quaternion_matrix(q)[:3, :3] # 3x3 회전 행렬
+                    mask_np = np.asarray(self.mask_data)
+                    if mask_np.ndim == 3:
+                        mask_np = mask_np[:, :, 0]
 
-                # 카메라 좌표계의 증분 벡터
-                delta_cam = np.array([d_x_cam, d_y_cam, d_z_cam])
-                
-                # 베이스 좌표계에서의 증분 벡터 = R * delta_cam
-                delta_base = np.dot(rotation_matrix, delta_cam)
+                    moments = cv2.moments(mask_np)
+                    if moments['m00'] <= 0:
+                        rate.sleep()
+                        continue
 
-                # 4. 최종 목표 포즈 생성
-                target_stamped = PoseStamped()
-                target_stamped.header.frame_id = "panda_link0"
-                target_stamped.header.stamp = rospy.Time.now()
-                
-                # 현재 위치 + 베이스 기준 증분
-                target_stamped.pose.position.x = trans.transform.translation.x + delta_base[0]
-                target_stamped.pose.position.y = trans.transform.translation.y + delta_base[1]
-                target_stamped.pose.position.z = trans.transform.translation.z + delta_base[2]
-                target_stamped.pose.orientation = trans.transform.rotation # 자세 유지
+                    u = int(moments['m10'] / moments['m00'])
+                    v = int(moments['m01'] / moments['m00'])
+                    h, w = mask_np.shape[:2]
+                    err_u = (w / 2.0 - u)
+                    err_v = (h / 2.0 - v)
+                    area_ratio = moments['m00'] / (h * w * 255.0)
 
-                self.pose_pub.publish(target_stamped)
+                    deadzone_u = w * deadzone_ratio * 0.5
+                    deadzone_v = h * deadzone_ratio * 0.5
 
-                if abs(err_u) < 10 and abs(err_v) < 10 and area_ratio >= target_area_ratio:
-                    rospy.loginfo("Reached!")
-                    break
+                    # 중심 근처에서는 XY를 멈춰 불필요한 미세 진동 방지
+                    if abs(err_u) < deadzone_u:
+                        err_u = 0.0
+                    if abs(err_v) < deadzone_v:
+                        err_v = 0.0
 
-            except Exception as e:
-                rospy.logerr(f"Zoom Error: {e}")
+                    d_x_cam = np.clip(err_u * gain_xy, -max_xy_step_m, max_xy_step_m)
+                    d_y_cam = np.clip(err_v * gain_xy, -max_xy_step_m, max_xy_step_m)
 
-            rate.sleep()
-        sub.unregister()
+                    # XY와 Z를 동시에 제어: 면적이 부족하면 전진은 계속 수행
+                    d_z_cam = forward_step_m if area_ratio < target_area_ratio else 0.0
+
+                    q_cam = [
+                        cam_tf.transform.rotation.x,
+                        cam_tf.transform.rotation.y,
+                        cam_tf.transform.rotation.z,
+                        cam_tf.transform.rotation.w,
+                    ]
+                    cam_rot = tft.quaternion_matrix(q_cam)[:3, :3]
+                    delta_cam = np.array([d_x_cam, d_y_cam, d_z_cam])
+                    delta_base = np.dot(cam_rot, delta_cam)
+
+                    q7 = self.get_latest_arm_joint('panda_joint7', timeout_sec=0.5)
+                    if q7 is not None:
+                        q7_err = q7_target - q7
+                        if abs(q7_err) < q7_deadband:
+                            q7_err = 0.0
+                        yaw_step = np.clip(k_yaw * q7_err, -max_yaw_step, max_yaw_step)
+                        yaw_offset = float(np.clip(yaw_offset + yaw_step, -max_yaw_total, max_yaw_total))
+
+                    q_yaw = tft.quaternion_from_euler(0.0, 0.0, yaw_offset)
+                    q_target = tft.quaternion_multiply(q_lock, q_yaw)
+                    q_target = q_target / np.linalg.norm(q_target)
+
+                    target_stamped = PoseStamped()
+                    target_stamped.header.frame_id = self.base_frame
+                    target_stamped.header.stamp = rospy.Time.now()
+                    target_stamped.pose.position.x = tcp_tf.transform.translation.x + delta_base[0]
+                    target_stamped.pose.position.y = tcp_tf.transform.translation.y + delta_base[1]
+                    target_stamped.pose.position.z = tcp_tf.transform.translation.z + delta_base[2]
+                    target_stamped.pose.orientation.x = q_target[0]
+                    target_stamped.pose.orientation.y = q_target[1]
+                    target_stamped.pose.orientation.z = q_target[2]
+                    target_stamped.pose.orientation.w = q_target[3]
+                    self.pose_pub.publish(target_stamped)
+
+                    reached = (abs(err_u) < stop_px and abs(err_v) < stop_px and area_ratio >= target_area_ratio)
+                    stable_frames = stable_frames + 1 if reached else 0
+
+                    rospy.loginfo_throttle(
+                        0.5,
+                        f"zoom err(u,v)=({err_u:.1f},{err_v:.1f}) area={area_ratio:.4f}/{target_area_ratio:.4f} "
+                        f"q7={q7 if q7 is not None else float('nan'):.3f} yaw_ofs={np.rad2deg(yaw_offset):.2f}deg"
+                    )
+
+                    if stable_frames >= stable_required:
+                        rospy.loginfo("Reached! (stable center + target area)")
+                        break
+
+                except Exception as e:
+                    rospy.logerr_throttle(1.0, f"Zoom Error: {e}")
+
+                rate.sleep()
+        finally:
+            sub.unregister()
 
     def select_object(self, obj_name):
         rospy.loginfo(f"Selecting target object: {obj_name}")
@@ -1791,7 +1865,10 @@ class ControllerSwitcher:
         elif key == MOVE_TO_VIEWPOINT: # Move to Viewpoint
             self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.move_to_viewpoint()
         elif key == ZOOM_TO_OBJECT: # Zoom to Object
-            self.switch_controller(self.pose_controller); rospy.sleep(0.5); self.zoom_to_object(self.selected_object, self.target_area_ratio[self.selected_object]);
+            target_ratio = self.target_area_ratio.get(self.selected_object, self.target_area_ratio['part11'])
+            if self.selected_object not in self.target_area_ratio:
+                rospy.logwarn(f"No target_area_ratio for {self.selected_object}. Using fallback: {target_ratio}")
+            self.switch_controller(self.pose_controller); rospy.sleep(0.5); self.zoom_to_object(self.selected_object, target_ratio);
         elif key == MOVE_TO_PRE_GRASP: # Move to Pre-Grasp
             self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.move_to_pre_grasp()
         elif key == MOVE_TO_GRASP: # Move to Grasp
@@ -1831,7 +1908,17 @@ if __name__ == '__main__':
         default='part11',
         help='Initial target object (e.g. part11, 11, 11-2, part12, part1)'
     )
+    parser.add_argument(
+        '--tf_live_update',
+        type=str,
+        choices=['on', 'off'],
+        default='on',
+        help='Enable/disable live grasp TF update (default: off)'
+    )
     args = parser.parse_args(rospy.myargv(argv=sys.argv)[1:])
 
-    switcher = ControllerSwitcher(selected_object=args.selected_object)
+    switcher = ControllerSwitcher(
+        selected_object=args.selected_object,
+        tf_live_update=args.tf_live_update
+    )
     switcher.run()
