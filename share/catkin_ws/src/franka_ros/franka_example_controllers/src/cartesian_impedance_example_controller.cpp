@@ -214,17 +214,23 @@ Eigen::Matrix<double, 7, 1> CartesianImpedanceExampleController::saturateTorqueR
 void CartesianImpedanceExampleController::complianceParamCallback(
     franka_example_controllers::compliance_paramConfig& config,
     uint32_t /*level*/) {
+  const double translational_damping =
+      config.auto_translational_damping ? 2.0 * sqrt(config.translational_stiffness)
+                                        : config.translational_damping;
+  const double rotational_damping =
+      config.auto_rotational_damping ? 2.0 * sqrt(config.rotational_stiffness)
+                                     : config.rotational_damping;
+
   cartesian_stiffness_target_.setIdentity();
   cartesian_stiffness_target_.topLeftCorner(3, 3)
       << config.translational_stiffness * Eigen::Matrix3d::Identity();
   cartesian_stiffness_target_.bottomRightCorner(3, 3)
       << config.rotational_stiffness * Eigen::Matrix3d::Identity();
   cartesian_damping_target_.setIdentity();
-  // Damping ratio = 1
   cartesian_damping_target_.topLeftCorner(3, 3)
-      << 2.0 * sqrt(config.translational_stiffness) * Eigen::Matrix3d::Identity();
+      << translational_damping * Eigen::Matrix3d::Identity();
   cartesian_damping_target_.bottomRightCorner(3, 3)
-      << config.rotational_damping * Eigen::Matrix3d::Identity();
+      << rotational_damping * Eigen::Matrix3d::Identity();
   nullspace_stiffness_target_ = config.nullspace_stiffness;
 }
 
