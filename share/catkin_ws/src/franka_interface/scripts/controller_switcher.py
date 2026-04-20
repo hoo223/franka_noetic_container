@@ -187,30 +187,35 @@ POSE_FALLBACK_PEG = {
 PRE_GRASP_OFFSET_Z = 0.07  # 7cm
 PRE_GOAL_OFFSET_Z = 0.03  # 5cm
 PRE_GOAL_OFFSET_Z_BY_PART = {
-    "part11": 0.035,
-    "part11-2": 0.05,
+    "part11": 0.03,
+    "part11-2": 0.04,
     "part9": 0.025,
     "part17": 0.025,
 }
 GRIPPER_MAX_WIDTH = 0.0396 * 2
 
 # Pre-goal position noise configuration
-# mode: 'none', 'xyz', 'xy', 'z', 'custom'
+# mode: 'none', 'none', 'xy', 'z', 'custom'
 PRE_GOAL_NOISE_MODE = 'xy'
 PRE_GOAL_NOISE_RANGE_M = {
-    'x': (-0.002, 0.002),
-    'y': (-0.002, 0.002),
-    'z': (-0.01, -0.01),
+    'x': (-0.0025, 0.0025),
+    'y': (-0.0025, 0.0025),
+    'z': (-0.0025, 0.0025),
 }
+# PRE_GOAL_NOISE_RANGE_M = {
+#     'x': (-0.003, 0.003),
+#     'y': (-0.003, 0.003),
+#     'z': (-0.003, 0.003),
+# }
 PRE_GOAL_NOISE_STEP_M = 0.0002
 
 # Pre-goal orientation noise configuration (RPY in degrees)
 # mode: 'none', 'rpy', 'roll', 'pitch', 'yaw', 'custom'
-PRE_GOAL_ROT_NOISE_MODE = 'none'
+PRE_GOAL_ROT_NOISE_MODE = 'rpy'
 PRE_GOAL_RPY_NOISE_RANGE_DEG = {
-    'r': (-0.5, 0.5),
-    'p': (-0.5, 0.5),
-    'y': (-0.5, 0.5),
+    'r': (-2, 2),
+    'p': (-2, 2),
+    'y': (-2, 2),
 }
 PRE_GOAL_ROT_NOISE_STEP_DEG = 0.1
 
@@ -534,7 +539,7 @@ class ControllerSwitcher:
             noise[axis] = delta
 
         rospy.loginfo(
-            f"Applied pre-goal noise [m]: dx={noise['x']:.4f}, dy={noise['y']:.4f}, dz={noise['z']:.4f} "
+            f"Applied shared goal/pre-goal position noise [m]: dx={noise['x']:.4f}, dy={noise['y']:.4f}, dz={noise['z']:.4f} "
             f"(mode={mode}, x=[{self.pre_goal_noise_range_m['x'][0]:.4f},{self.pre_goal_noise_range_m['x'][1]:.4f}], "
             f"y=[{self.pre_goal_noise_range_m['y'][0]:.4f},{self.pre_goal_noise_range_m['y'][1]:.4f}], "
             f"z=[{self.pre_goal_noise_range_m['z'][0]:.4f},{self.pre_goal_noise_range_m['z'][1]:.4f}], "
@@ -609,7 +614,7 @@ class ControllerSwitcher:
         noisy_pose['orientation']['w'] = q_noisy[3]
 
         rospy.loginfo(
-            f"Applied pre-goal RPY noise [deg]: dr={noise_deg['r']:.3f}, dp={noise_deg['p']:.3f}, dy={noise_deg['y']:.3f} "
+            f"Applied shared goal/pre-goal RPY noise [deg]: dr={noise_deg['r']:.3f}, dp={noise_deg['p']:.3f}, dy={noise_deg['y']:.3f} "
             f"(mode={mode}, r=[{self.pre_goal_rpy_noise_range_deg['r'][0]:.3f},{self.pre_goal_rpy_noise_range_deg['r'][1]:.3f}], "
             f"p=[{self.pre_goal_rpy_noise_range_deg['p'][0]:.3f},{self.pre_goal_rpy_noise_range_deg['p'][1]:.3f}], "
             f"y=[{self.pre_goal_rpy_noise_range_deg['y'][0]:.3f},{self.pre_goal_rpy_noise_range_deg['y'][1]:.3f}], "
@@ -644,18 +649,21 @@ class ControllerSwitcher:
             rospy.logwarn(f"Failed to load goal pose for {self.peg_name}")
             return
 
+        goal_pose_dict = copy.deepcopy(self.goal_pose_data[self.peg_name])
+        if with_noise:
+            # 소켓 pose 추정 오차를 모사하기 위해 goal/pre-goal에 동일한 오차를 공유한다.
+            goal_pose_dict = self.add_position_noise(goal_pose_dict)
+            goal_pose_dict = self.add_orientation_noise(goal_pose_dict)
+
         self.update_fixed_pose(
-            pose_data=self.goal_pose_data[self.peg_name],
+            pose_data=goal_pose_dict,
             parent_frame=self.hole_frame,
             child_frame=f"goal_pose_{self.peg_name}"
         )
 
-        pre_goal_pose_dict = copy.deepcopy(self.goal_pose_data[self.peg_name])
+        pre_goal_pose_dict = copy.deepcopy(goal_pose_dict)
         pre_goal_offset_z = self.get_pre_goal_offset_z(self.peg_name)
         pre_goal_pose_dict['position']['z'] += pre_goal_offset_z
-        if with_noise:
-            pre_goal_pose_dict = self.add_position_noise(pre_goal_pose_dict)
-            pre_goal_pose_dict = self.add_orientation_noise(pre_goal_pose_dict)
 
         self.update_fixed_pose(
             pose_data=pre_goal_pose_dict,
@@ -1905,14 +1913,14 @@ if __name__ == '__main__':
     parser.add_argument(
         '--selected_object',
         type=str,
-        default='part11',
+        default='part11-2',
         help='Initial target object (e.g. part11, 11, 11-2, part12, part1)'
     )
     parser.add_argument(
         '--tf_live_update',
         type=str,
         choices=['on', 'off'],
-        default='on',
+        default='off',
         help='Enable/disable live grasp TF update (default: off)'
     )
     args = parser.parse_args(rospy.myargv(argv=sys.argv)[1:])
