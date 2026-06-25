@@ -55,29 +55,32 @@ INSERTION = '8'
 PEG_LIST = [9, 11, 12, 17]
 PEG_NAME_EXTRA = ["part11-2"]
 
-MODE_DICT = {
-    'a': 'MOVEIT',
-    's': 'CARTESIAN_IMPEDANCE',
-    'd': 'CARTESIAN_POSE',
-    't': 'TELEOP',
-    'i': 'TELEOP_IMPEDANCE',
-    'h': 'SELECT_HOLE',
-    'p': 'SELECT_PEG',
-    'o': 'OPEN_GRIPPER',
-    'c': 'CLOSE_GRIPPER',
-    'g': 'GRASPING',
-    'f': 'REGISTER_FRAMES',
-    'j': 'SELECT_HOLE_POSE',
-    '0': 'SET_VIEWPOINT',
-    '1': 'MOVE_TO_HOME',
-    '2': 'MOVE_TO_VIEWPOINT',
-    '3': 'ZOOM_TO_OBJECT',
-    '4': 'MOVE_TO_PRE_GRASP',
-    '5': 'MOVE_TO_GRASP',
-    '6': 'GENERATE_TRAJECTORY',
-    '7': 'APPROACH',
-    '8': 'INSERTION',
-}
+MODE_SPECS = [
+    (MOVEIT, 'MOVEIT', 'MoveIt Mode', True),
+    (CARTESIAN_IMPEDANCE, 'CARTESIAN_IMPEDANCE', 'Cartesian Impedance Mode', True),
+    (CARTESIAN_POSE, 'CARTESIAN_POSE', 'Cartesian Pose Mode', True),
+    (TELEOP, 'TELEOP', 'Teleop Mode', True),
+    (TELEOP_IMPEDANCE, 'TELEOP_IMPEDANCE', 'Teleop Impedance Mode', True),
+    (SELECT_HOLE, 'SELECT_HOLE', 'Select Hole as Target Object', True),
+    (SELECT_PEG, 'SELECT_PEG', 'Select Peg as Target Object', True),
+    (OPEN_GRIPPER, 'OPEN_GRIPPER', 'Open Gripper', False),
+    (CLOSE_GRIPPER, 'CLOSE_GRIPPER', 'Close Gripper', False),
+    (GRASPING, 'GRASPING', 'Grasping', False),
+    (REGISTER_FRAMES, 'REGISTER_FRAMES', 'Register Frames', True),
+    (SELECT_HOLE_POSE, 'SELECT_HOLE_POSE', 'Select Hole Pose (current_x.json)', True),
+    (SET_VIEWPOINT, 'SET_VIEWPOINT', 'Set Viewpoint Pose', True),
+    (MOVE_TO_HOME, 'MOVE_TO_HOME', 'Move to Home', True),
+    (MOVE_TO_VIEWPOINT, 'MOVE_TO_VIEWPOINT', 'Move to Viewpoint', True),
+    (ZOOM_TO_OBJECT, 'ZOOM_TO_OBJECT', 'Zoom to Object', True),
+    (MOVE_TO_PRE_GRASP, 'MOVE_TO_PRE_GRASP', 'Move to Pre-Grasp', True),
+    (MOVE_TO_GRASP, 'MOVE_TO_GRASP', 'Move to Grasp', True),
+    (GENERATE_TRAJECTORY, 'GENERATE_TRAJECTORY', 'Generate Trajectory', True),
+    (APPROACH, 'APPROACH', 'Approach', True),
+    (INSERTION, 'INSERTION', 'Insertion', True),
+]
+
+MODE_DICT = {key: name for key, name, _, _ in MODE_SPECS}
+MODE_GUIDE_ITEMS = [(key, guide) for key, _, guide, show_in_guide in MODE_SPECS if show_in_guide]
 
 
 
@@ -212,17 +215,17 @@ GRIPPER_MAX_WIDTH = 0.0396 * 2
 
 # Pre-goal position noise configuration
 # mode: 'none', 'none', 'xy', 'z', 'custom'
-PRE_GOAL_NOISE_MODE = 'none'
-# PRE_GOAL_NOISE_RANGE_M = {
-#     'x': (-0.0025, 0.0025),
-#     'y': (-0.0025, 0.0025),
-#     'z': (-0.0025, 0.0025),
-# }
+PRE_GOAL_NOISE_MODE = 'xy'
 PRE_GOAL_NOISE_RANGE_M = {
-    'x': (-0.005, 0.005),
-    'y': (-0.005, 0.005),
-    'z': (-0.005, 0.005),
+    'x': (-0.0025, 0.0025),
+    'y': (-0.0025, 0.0025),
+    'z': (-0.0025, 0.0025),
 }
+# PRE_GOAL_NOISE_RANGE_M = {
+#     'x': (-0.005, 0.005),
+#     'y': (-0.005, 0.005),
+#     'z': (-0.005, 0.005),
+# }
 PRE_GOAL_NOISE_STEP_M = 0.0002
 
 # Pre-goal orientation noise configuration (RPY in degrees)
@@ -237,6 +240,11 @@ PRE_GOAL_ROT_NOISE_STEP_DEG = 0.1
 
 PRE_GOAL_TARGET_FROM_VIDEO = 'from_video'
 PRE_GOAL_TARGET_FROM_MANUAL = 'from_manual'
+ARM_JOINT_STATES_TOPIC = '/franka_state_controller/joint_states'
+VIEWPOINT_DIR = 'viewpoint'
+CURRENT_POSE_FILENAME = 'current.json'
+CAMERA_FRAME = 'camera_link'
+PANDA_HAND_FRAME = 'panda_hand'
 
 def get_transformed_pose(base_pose, relative_pose):
     """
@@ -274,13 +282,35 @@ class ControllerSwitcher:
         rospy.init_node('controller_switcher_node')
         self.path = os.path.dirname(__file__)
 
+        self._init_frame_paths()
+        self._init_selection(selected_object, tf_live_update, pre_goal_target)
+        self._init_target_area_ratio()
+        self._init_noise_config()
+        self._init_ros_interfaces()
+        self._init_motion_interfaces()
+        self._init_controllers()
+        self._init_grasp_state()
+        self._init_home_pose()
+        self._init_fixed_pose_state()
+        self._init_runtime_state()
+
+        initial_mode = MOVEIT
+        self.mode = initial_mode
+        self.mode_pub.publish(initial_mode)
+
+        self.print_guide(initial_mode)
+
+    def _init_frame_paths(self):
+
         self.base_frame = "panda_link0"
         self.tcp_frame = "panda_hand_tcp"
         self.fixed_pose_root = os.path.join(self.path, "fixed_pose")
         self.hole_name = "part1"
         self.hole_frame = "object_" + self.hole_name
-        self.hole_pose_file = os.path.join(self.fixed_pose_root, self.hole_name, "current.json")
+        self.hole_pose_file = os.path.join(self.fixed_pose_root, self.hole_name, CURRENT_POSE_FILENAME)
+        self.viewpoint_file = os.path.join(self.fixed_pose_root, VIEWPOINT_DIR, CURRENT_POSE_FILENAME)
 
+    def _init_selection(self, selected_object, tf_live_update, pre_goal_target):
         self.selected_object = self.resolve_initial_selected_object(selected_object)
         self.update_selected_peg(self.selected_object)
         self.tf_live_update_enabled = str(tf_live_update).strip().lower() == 'on'
@@ -294,6 +324,7 @@ class ControllerSwitcher:
             self.pre_goal_target = PRE_GOAL_TARGET_FROM_VIDEO
         rospy.loginfo(f"Pre-goal target source: {self.pre_goal_target}")
 
+    def _init_target_area_ratio(self):
         self.target_area_ratio = {
             'part1': 0.18,
             'part7': 0.05,
@@ -304,6 +335,7 @@ class ControllerSwitcher:
             'part17': 0.01,
         }
 
+    def _init_noise_config(self):
         self.pre_goal_noise_mode = str(rospy.get_param('~pre_goal_noise_mode', PRE_GOAL_NOISE_MODE)).lower()
         self.pre_goal_noise_range_m = {
             'x': (
@@ -343,25 +375,15 @@ class ControllerSwitcher:
             self._param_float('~pre_goal_rot_noise_step_deg', PRE_GOAL_ROT_NOISE_STEP_DEG)
         )
 
-        # 서비스 클라이언트 설정
+    def _init_ros_interfaces(self):
         self.switch_srv = rospy.ServiceProxy('/controller_manager/switch_controller', SwitchController)
         self.list_srv = rospy.ServiceProxy('/controller_manager/list_controllers', ListControllers)
-
-        # TF 리스너 및 MoveIt 팔 그룹 설정 (추가)
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
-        self.arm = moveit_commander.MoveGroupCommander("panda_arm")
-        self.arm.set_end_effector_link("panda_hand_tcp")
-
-        # 1. 외부 노드로부터 명령을 받을 Subscriber 추가
-        # /set_controller_mode 토픽으로 "1", "2", "3" 또는 컨트롤러 이름을 보내면 바뀝니다.
         self.mode_sub = rospy.Subscriber('/set_controller_mode', String, self.mode_callback)
         self.gripper_joint_sub = rospy.Subscriber('/franka_gripper/joint_states', JointState, self.gripper_joint_callback)
         self.arm_joint_sub = rospy.Subscriber('/franka_state_controller/joint_states', JointState, self.arm_joint_callback)
         self.pose_sub = None
         self.pose_received = False
 
-        # 현재 모드 발행용 Publisher (latch=True)
         self.mode_pub = rospy.Publisher('/current_mode', String, queue_size=1, latch=True)
         self.sam2_pub = rospy.Publisher('/sam2_target_object', String, queue_size=1, latch=False)
         self.fp_pub = rospy.Publisher('/fp_target_object', String, queue_size=1, latch=False)
@@ -373,19 +395,24 @@ class ControllerSwitcher:
         self.policy_status = 'UNKNOWN'
         self.insertion_active = False
 
-        # 컨트롤러 이름 정의
+    def _init_motion_interfaces(self):
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        self.arm = moveit_commander.MoveGroupCommander("panda_arm")
+        self.arm.set_end_effector_link("panda_hand_tcp")
+
+    def _init_controllers(self):
         self.pos_controller = "position_joint_trajectory_controller"
         self.imp_controller = "cartesian_impedance_example_controller"
         self.pose_controller = "cartesian_pose_controller"
         self.all_controllers = [self.pos_controller, self.imp_controller, self.pose_controller]
 
-        # 액션 클라이언트 (Home 복귀용)
         self.trajectory_client = actionlib.SimpleActionClient(
             f'/{self.pos_controller}/follow_joint_trajectory', 
             FollowJointTrajectoryAction
         )
 
-        # Grasp 상태 관련 변수
+    def _init_grasp_state(self):
         self.is_gripper_closed = False
         self.is_grasped = False
         self.grasp_threshold = 0.02  # 2cm 이내일 때 잡은 것으로 간주
@@ -394,34 +421,29 @@ class ControllerSwitcher:
         self.gripper_state_timeout = 0.5
         self.latest_arm_joint_positions = {}
         self.last_arm_joint_state_stamp = rospy.Time(0)
-        
-        # Grasp 상태 발행용 Publisher
+
         self.grasp_status_pub = rospy.Publisher('/is_grasped', Bool, queue_size=1, latch=True)
-        
-        # 주기적으로 상태를 체크하기 위한 타이머 (10Hz)
         self.grasp_check_timer = rospy.Timer(rospy.Duration(0.1), self.check_grasp_status)
-        
-        # --- 사전 정의된 START POSE (Joint Angles) ---
+
+    def _init_home_pose(self):
         self.home_pose = {
             'panda_joint1': 0.0, 'panda_joint2': -0.785, 'panda_joint3': 0.0,
             'panda_joint4': -2.356, 'panda_joint5': 0.0, 'panda_joint6': 1.571, 'panda_joint7': 0.785
         }
 
-        # --- 사전 정의된 GOAL POSE (txt 파일 경로) ---
+    def _init_fixed_pose_state(self):
         self.goal_pose_path = goal_pose_path
         self.goal_pose_data = {}
-
-        self.settings = termios.tcgetattr(sys.stdin)
-
         self.static_br = tf2_ros.StaticTransformBroadcaster()
         self.fixed_poses = {}
         self.load_and_publish_all_saved_poses()
-        
-        initial_mode = MOVEIT
-        self.mode = initial_mode
-        self.mode_pub.publish(initial_mode)
 
-        self.print_guide(initial_mode)
+    def _init_runtime_state(self):
+        self.settings = termios.tcgetattr(sys.stdin)
+
+    # ---------------------------
+    # Selection And Configuration
+    # ---------------------------
 
     def resolve_initial_selected_object(self, selected_object):
         candidate = selected_object
@@ -481,6 +503,28 @@ class ControllerSwitcher:
     def _param_float(self, name, default):
         return float(str(rospy.get_param(name, default)))
 
+    # -----------------
+    # Pose And TF State
+    # -----------------
+
+    def _sample_with_step(self, lo, hi, step):
+        lo = float(lo)
+        hi = float(hi)
+        if lo > hi:
+            lo, hi = hi, lo
+
+        if step <= 0.0:
+            return float(np.random.uniform(lo, hi))
+
+        start_idx = int(np.ceil(lo / step))
+        end_idx = int(np.floor(hi / step))
+        if start_idx <= end_idx:
+            return float(np.random.randint(start_idx, end_idx + 1) * step)
+
+        sampled = float(np.random.uniform(lo, hi))
+        snapped = round(sampled / step) * step
+        return float(min(max(snapped, lo), hi))
+
     def get_pre_goal_offset_z(self, peg_name):
         return PRE_GOAL_OFFSET_Z_BY_PART.get(peg_name, PRE_GOAL_OFFSET_Z)
 
@@ -489,12 +533,13 @@ class ControllerSwitcher:
 
         self.update_fixed_pose(
             pose_data=dummy_camera_pose_dict,
-            parent_frame="panda_hand",
-            child_frame="camera_link"
+            parent_frame=PANDA_HAND_FRAME,
+            child_frame=CAMERA_FRAME
         )
 
         if os.path.exists(self.hole_pose_file):
-            hole_pose_dict = json.load(open(self.hole_pose_file, 'r'))
+            with open(self.hole_pose_file, 'r') as f:
+                hole_pose_dict = json.load(f)
             self.update_fixed_pose(
                 pose_data=hole_pose_dict,
                 parent_frame=self.base_frame,
@@ -525,24 +570,6 @@ class ControllerSwitcher:
         noisy_pose = copy.deepcopy(pose_dict)
         axes = {'x': False, 'y': False, 'z': False}
 
-        def sample_with_step(lo, hi, step):
-            lo = float(lo)
-            hi = float(hi)
-            if lo > hi:
-                lo, hi = hi, lo
-
-            if step <= 0.0:
-                return float(np.random.uniform(lo, hi))
-
-            start_idx = int(np.ceil(lo / step))
-            end_idx = int(np.floor(hi / step))
-            if start_idx <= end_idx:
-                return float(np.random.randint(start_idx, end_idx + 1) * step)
-
-            sampled = float(np.random.uniform(lo, hi))
-            snapped = round(sampled / step) * step
-            return float(min(max(snapped, lo), hi))
-
         mode = (self.pre_goal_noise_mode or PRE_GOAL_NOISE_MODE).lower()
         if mode == 'xy':
             axes['x'] = True
@@ -561,7 +588,7 @@ class ControllerSwitcher:
             min_v, max_v = self.pre_goal_noise_range_m[axis]
             lo = min(min_v, max_v)
             hi = max(min_v, max_v)
-            delta = sample_with_step(lo, hi, self.pre_goal_noise_step_m) if enabled else 0.0
+            delta = self._sample_with_step(lo, hi, self.pre_goal_noise_step_m) if enabled else 0.0
             noisy_pose['position'][axis] += delta
             noise[axis] = delta
 
@@ -577,24 +604,6 @@ class ControllerSwitcher:
     def add_orientation_noise(self, pose_dict):
         noisy_pose = copy.deepcopy(pose_dict)
         axes = {'r': False, 'p': False, 'y': False}
-
-        def sample_with_step(lo, hi, step):
-            lo = float(lo)
-            hi = float(hi)
-            if lo > hi:
-                lo, hi = hi, lo
-
-            if step <= 0.0:
-                return float(np.random.uniform(lo, hi))
-
-            start_idx = int(np.ceil(lo / step))
-            end_idx = int(np.floor(hi / step))
-            if start_idx <= end_idx:
-                return float(np.random.randint(start_idx, end_idx + 1) * step)
-
-            sampled = float(np.random.uniform(lo, hi))
-            snapped = round(sampled / step) * step
-            return float(min(max(snapped, lo), hi))
 
         mode = (self.pre_goal_rot_noise_mode or PRE_GOAL_ROT_NOISE_MODE).lower()
         if mode == 'rpy':
@@ -617,7 +626,7 @@ class ControllerSwitcher:
             min_v, max_v = self.pre_goal_rpy_noise_range_deg[axis]
             lo = min(min_v, max_v)
             hi = max(min_v, max_v)
-            delta_deg = sample_with_step(lo, hi, self.pre_goal_rot_noise_step_deg) if enabled else 0.0
+            delta_deg = self._sample_with_step(lo, hi, self.pre_goal_rot_noise_step_deg) if enabled else 0.0
             noise_deg[axis] = delta_deg
 
         q = [
@@ -775,7 +784,8 @@ class ControllerSwitcher:
 
         selected_path = os.path.join(self.fixed_pose_root, self.hole_name, selected_name)
         try:
-            hole_pose_dict = json.load(open(selected_path, 'r'))
+            with open(selected_path, 'r') as f:
+                hole_pose_dict = json.load(f)
         except Exception as e:
             rospy.logerr(f"Failed to load selected hole pose file {selected_path}: {e}")
             return
@@ -847,6 +857,115 @@ class ControllerSwitcher:
             rospy.logerr(f"Failed to load goal matrix: {e}")
             return False
 
+    def _save_json(self, data, file_path):
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, 'w') as f:
+            json.dump(data, f, indent=4)
+
+    def _load_json(self, file_path):
+        with open(file_path, 'r') as f:
+            return json.load(f)
+
+    def _load_pose_json(self, file_path):
+        data = self._load_json(file_path)
+        if 'position' not in data or 'orientation' not in data:
+            raise ValueError(f"Invalid pose format in {file_path}")
+        return data
+
+    def _pose_msg_to_dict(self, pose):
+        return {
+            "position": {
+                "x": pose.position.x,
+                "y": pose.position.y,
+                "z": pose.position.z
+            },
+            "orientation": {
+                "x": pose.orientation.x,
+                "y": pose.orientation.y,
+                "z": pose.orientation.z,
+                "w": pose.orientation.w
+            }
+        }
+
+    def _pose_dict_to_pose_stamped(self, frame_id, pose_dict):
+        pose_stamped = PoseStamped()
+        pose_stamped.header.frame_id = frame_id
+        pose_stamped.header.stamp = rospy.Time.now()
+        pose_stamped.pose.position.x = pose_dict['position']['x']
+        pose_stamped.pose.position.y = pose_dict['position']['y']
+        pose_stamped.pose.position.z = pose_dict['position']['z']
+        pose_stamped.pose.orientation.x = pose_dict['orientation']['x']
+        pose_stamped.pose.orientation.y = pose_dict['orientation']['y']
+        pose_stamped.pose.orientation.z = pose_dict['orientation']['z']
+        pose_stamped.pose.orientation.w = pose_dict['orientation']['w']
+        return pose_stamped
+
+    def _pose_dict_to_transform(self, parent_frame, child_frame, pose_data):
+        transform = TransformStamped()
+        transform.header.stamp = rospy.Time.now()
+        transform.header.frame_id = parent_frame
+        transform.child_frame_id = child_frame
+        transform.transform.translation.x = pose_data['position']['x']
+        transform.transform.translation.y = pose_data['position']['y']
+        transform.transform.translation.z = pose_data['position']['z']
+        transform.transform.rotation.x = pose_data['orientation']['x']
+        transform.transform.rotation.y = pose_data['orientation']['y']
+        transform.transform.rotation.z = pose_data['orientation']['z']
+        transform.transform.rotation.w = pose_data['orientation']['w']
+        return transform
+
+    def _build_pose_stamped(self, frame_id, pose_dict):
+        return self._pose_dict_to_pose_stamped(frame_id, pose_dict)
+
+    def _get_current_arm_joint_positions(self, timeout=2.0):
+        joint_state = rospy.wait_for_message(ARM_JOINT_STATES_TOPIC, JointState, timeout=timeout)
+        return dict(zip(joint_state.name, joint_state.position))
+
+    def _compute_joint_move_duration(self, target_joints, current_joints, velocity_limit=0.5, min_duration=2.0):
+        max_movement = max(
+            abs(target_joints[joint] - current_joints[joint])
+            for joint in target_joints
+            if joint in current_joints
+        )
+        return max(max_movement / velocity_limit, min_duration)
+
+    def _send_joint_goal(self, target_joints, move_duration):
+        goal = FollowJointTrajectoryGoal()
+        goal.trajectory.joint_names = list(target_joints.keys())
+
+        point = JointTrajectoryPoint()
+        point.positions = [target_joints[joint] for joint in goal.trajectory.joint_names]
+        point.velocities = [0.0] * len(goal.trajectory.joint_names)
+        point.time_from_start = rospy.Duration.from_sec(move_duration)
+        goal.trajectory.points.append(point)
+
+        self.trajectory_client.send_goal(goal)
+
+    def _compute_and_execute_cartesian_path(
+        self,
+        waypoints,
+        success_fraction=0.9,
+        velocity_scaling_factor=None,
+        acceleration_scaling_factor=None,
+        failure_log='Cartesian path planning failed'
+    ):
+        plan, fraction = self.arm.compute_cartesian_path(waypoints, 0.01, False)
+        if fraction <= success_fraction:
+            rospy.logwarn(f"{failure_log} (Fraction: {fraction})")
+            return False
+
+        if velocity_scaling_factor is not None and acceleration_scaling_factor is not None:
+            plan = self.arm.retime_trajectory(
+                self.arm.get_current_state(),
+                plan,
+                velocity_scaling_factor=velocity_scaling_factor,
+                acceleration_scaling_factor=acceleration_scaling_factor,
+                algorithm="time_optimal_trajectory_generation"
+            )
+
+        self.arm.execute(plan, wait=True)
+        return True
+
     def normalize_quaternion(self, q):
         norm = np.sqrt(q.x**2 + q.y**2 + q.z**2 + q.w**2)
         q.x /= norm
@@ -857,6 +976,10 @@ class ControllerSwitcher:
 
     def get_current_tcp_pose(self):
         return self.arm.get_current_pose().pose
+
+    # -----------------
+    # ROS Interactions
+    # -----------------
 
     # 2. 다른 노드에서 메시지를 보냈을 때 실행될 콜백 함수
     def mode_callback(self, msg):
@@ -956,29 +1079,26 @@ class ControllerSwitcher:
         try:
             # parent_frame 기준으로 target_frame의 좌표를 가져옴
             trans = self.tf_buffer.lookup_transform(parent_frame, target_frame, rospy.Time(0), rospy.Duration(2.0))
-            pose = PoseStamped()
-            pose.header.frame_id = parent_frame
-            pose.pose.position = trans.transform.translation
-            pose.pose.orientation = trans.transform.rotation
-            return pose
+            pose_dict = {
+                'position': {
+                    'x': trans.transform.translation.x,
+                    'y': trans.transform.translation.y,
+                    'z': trans.transform.translation.z,
+                },
+                'orientation': {
+                    'x': trans.transform.rotation.x,
+                    'y': trans.transform.rotation.y,
+                    'z': trans.transform.rotation.z,
+                    'w': trans.transform.rotation.w,
+                }
+            }
+            return self._pose_dict_to_pose_stamped(parent_frame, pose_dict)
         except Exception as e:
             rospy.logerr(f"TF Lookup failed for {target_frame}: {e}")
             return None
 
     def pose_to_pose_dict(self, pose):
-        return {
-            "position": {
-                "x": pose.position.x,
-                "y": pose.position.y,
-                "z": pose.position.z
-            },
-            "orientation": {
-                "x": pose.orientation.x,
-                "y": pose.orientation.y,
-                "z": pose.orientation.z,
-                "w": pose.orientation.w
-            }
-        }
+        return self._pose_msg_to_dict(pose)
 
     def set_trajectory_time(self, plan, target_duration):
         """궤적 전체 시간을 target_duration초로 재설정"""
@@ -992,6 +1112,10 @@ class ControllerSwitcher:
             points[i].accelerations = [0.0] * len(points[i].positions)
         return plan
 
+    # -------------
+    # Motion Prims
+    # -------------
+
     def move_to_home(self):
         rospy.loginfo("move_to_home: Waiting for action server...")
         if not self.trajectory_client.wait_for_server(timeout=rospy.Duration(2.0)):
@@ -1004,79 +1128,46 @@ class ControllerSwitcher:
             return
 
         try:
-            joint_state = rospy.wait_for_message('/franka_state_controller/joint_states', JointState, timeout=2.0)
-            initial_pose = dict(zip(joint_state.name, joint_state.position))
+            initial_pose = self._get_current_arm_joint_positions(timeout=2.0)
         except:
             rospy.logerr("move_to_home: Could not get current joint states.")
             return
 
-        max_movement = max(abs(self.home_pose[joint] - initial_pose[joint]) for joint in self.home_pose if joint in initial_pose)
-        move_duration = max(max_movement / 0.5, 2.0)
-
-        goal = FollowJointTrajectoryGoal()
-        goal.trajectory.joint_names = list(self.home_pose.keys())
-        point = JointTrajectoryPoint()
-        point.positions = [self.home_pose[joint] for joint in goal.trajectory.joint_names]
-        point.velocities = [0.0] * len(goal.trajectory.joint_names)
-        point.time_from_start = rospy.Duration.from_sec(move_duration)
-        goal.trajectory.points.append(point)
-
-        self.trajectory_client.send_goal(goal) # send_goal_and_wait 대신 send_goal 사용 권장 (스레드 차단 방지)
+        move_duration = self._compute_joint_move_duration(self.home_pose, initial_pose, min_duration=2.0)
+        self._send_joint_goal(self.home_pose, move_duration)
 
     def move_to_pre_grasp(self):
         rospy.loginfo(f"Moving {self.tcp_frame} to {self.pre_grasp_tcp_frame}...")
-        # 1. Pre-Grasp 위치로 이동 (일반 PTP 이동)
         pre_grasp_pose_stamped = self.get_pose_from_tf(self.pre_grasp_tcp_frame)
         if pre_grasp_pose_stamped:
             rospy.loginfo("Approaching Pre-Grasp Point (Cartesian Path)...")
-            # waypoints = [pre_grasp_pose_stamped.pose]
             target_pose = pre_grasp_pose_stamped.pose
             target_pose.orientation = self.normalize_quaternion(target_pose.orientation)
-            waypoints = [target_pose]
-            (plan, fraction) = self.arm.compute_cartesian_path(waypoints, 0.01, False)
-            if fraction > 0.9: # 경로 생성 성공률이 높을 때만 실행
-                # 천천히 이동하도록 궤적 수정
-                plan = self.arm.retime_trajectory(
-                    self.arm.get_current_state(),
-                    plan,
-                    velocity_scaling_factor=0.5,
-                    acceleration_scaling_factor=0.2,
-                    algorithm="time_optimal_trajectory_generation"  # ROS1 MoveIt에서 흔히 사용
-                )
-                self.arm.execute(plan, wait=True)
+            if self._compute_and_execute_cartesian_path(
+                [target_pose],
+                velocity_scaling_factor=0.5,
+                acceleration_scaling_factor=0.2,
+                failure_log='Cartesian path planning to Pre-Grasp failed'
+            ):
                 rospy.loginfo("Pre-Grasp position reached!")
-            else:
-                rospy.logwarn(f"Cartesian path planning to Pre-Grasp failed (Fraction: {fraction})")
-                return False
+                return True
+
+            return False
             
     def move_to_grasp(self):
         rospy.loginfo(f"Moving {self.tcp_frame} to {self.grasp_tcp_frame}...")
-        # 2. Grasp 위치로 직선(Cartesian) 진입
         grasp_pose_stamped = self.get_pose_from_tf(self.grasp_tcp_frame)
         if grasp_pose_stamped:
             rospy.loginfo("Approaching Grasp Point (Cartesian Path)...")
-            # waypoints = [grasp_pose_stamped.pose]
             target_pose = grasp_pose_stamped.pose
             target_pose.orientation = self.normalize_quaternion(target_pose.orientation)
-            waypoints = [target_pose]
-            
-            # 속도 제한 및 경로 계산
-            (plan, fraction) = self.arm.compute_cartesian_path(waypoints, 0.01, False)
-            
-            if fraction > 0.9: # 경로 생성 성공률이 높을 때만 실행
-                # 천천히 이동하도록 궤적 수정
-                plan = self.arm.retime_trajectory(
-                    self.arm.get_current_state(),
-                    plan,
-                    velocity_scaling_factor=0.05,
-                    acceleration_scaling_factor=0.05,
-                    algorithm="time_optimal_trajectory_generation"  # ROS1 MoveIt에서 흔히 사용
-                )
-                self.arm.execute(plan, wait=True)
+            if self._compute_and_execute_cartesian_path(
+                [target_pose],
+                velocity_scaling_factor=0.05,
+                acceleration_scaling_factor=0.05
+            ):
                 rospy.loginfo("Grasp position reached!")
                 return True
-            else:
-                rospy.logwarn(f"Cartesian path planning failed (Fraction: {fraction})")
         
         return False
 
@@ -1084,23 +1175,14 @@ class ControllerSwitcher:
         """현재 로봇의 Joint State를 viewpoint.json 파일로 저장합니다."""
         rospy.loginfo("Setting current pose as viewpoint...")
         try:
-            # 현재 Joint State 메시지 수신 (1초 대기)
-            joint_state = rospy.wait_for_message('/franka_state_controller/joint_states', JointState, timeout=1.0)
-            
-            # Joint 이름과 위치를 딕셔너리로 결합
-            viewpoint_data = dict(zip(joint_state.name, joint_state.position))
+            viewpoint_data = self._get_current_arm_joint_positions(timeout=1.0)
             
             # 필터링: panda_arm에 해당하는 joint만 저장 (필요 시)
             arm_joints = {k: v for k, v in viewpoint_data.items() if 'panda_joint' in k}
 
-            # 파일 저장 경로 설정 (스크립트와 같은 위치)
-            file_path = os.path.join(self.fixed_pose_root, 'viewpoint', 'current.json')
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            self._save_json(arm_joints, self.viewpoint_file)
             
-            with open(file_path, 'w') as f:
-                json.dump(arm_joints, f, indent=4)
-            
-            rospy.loginfo(f"Viewpoint saved successfully to: {file_path}")
+            rospy.loginfo(f"Viewpoint saved successfully to: {self.viewpoint_file}")
             print(f"\n[SAVED] {arm_joints}")
             
         except rospy.ROSException:
@@ -1177,17 +1259,14 @@ class ControllerSwitcher:
         """저장된 viewpoint.json 파일을 읽어 로봇을 해당 자세로 이동시킵니다."""
         rospy.loginfo("Moving to saved viewpoint...")
         
-        file_path = os.path.join(self.fixed_pose_root, 'viewpoint', 'current.json')
-        
-        if not os.path.exists(file_path):
+        if not os.path.exists(self.viewpoint_file):
             rospy.logerr("Viewpoint file not found! Please set pose first (Press '0').")
             return
 
         try:
             # 1. 파일에서 데이터 로드
-            with open(file_path, 'r') as f:
-                target_viewpoint = json.load(f)
-                print(f"\n[LOADED VIEWPOINT] {target_viewpoint}")
+            target_viewpoint = self._load_json(self.viewpoint_file)
+            print(f"\n[LOADED VIEWPOINT] {target_viewpoint}")
 
             # 2. 액션 서버 확인
             if not self.trajectory_client.wait_for_server(timeout=rospy.Duration(2.0)):
@@ -1195,25 +1274,11 @@ class ControllerSwitcher:
                 return
 
             # 3. 현재 위치 확인 및 이동 시간 계산
-            joint_state = rospy.wait_for_message('/franka_state_controller/joint_states', JointState, timeout=2.0)
-            current_pose = dict(zip(joint_state.name, joint_state.position))
-            
-            max_diff = max(abs(target_viewpoint[j] - current_pose[j]) for j in target_viewpoint if j in current_pose)
-            move_duration = max(max_diff / 0.5, 3.0)  # 최소 3초 보장
-
-            # 4. Goal 생성 및 전송
-            goal = FollowJointTrajectoryGoal()
-            goal.trajectory.joint_names = list(target_viewpoint.keys())
-            
-            point = JointTrajectoryPoint()
-            point.positions = [target_viewpoint[j] for j in goal.trajectory.joint_names]
-            point.velocities = [0.0] * len(goal.trajectory.joint_names)
-            point.time_from_start = rospy.Duration.from_sec(move_duration)
-            
-            goal.trajectory.points.append(point)
+            current_pose = self._get_current_arm_joint_positions(timeout=2.0)
+            move_duration = self._compute_joint_move_duration(target_viewpoint, current_pose, min_duration=3.0)
             
             rospy.loginfo(f"Sending viewpoint goal (Duration: {move_duration:.2f}s)")
-            self.trajectory_client.send_goal(goal)
+            self._send_joint_goal(target_viewpoint, move_duration)
             
             # 이동 완료 대기 (필요 시)
             # self.trajectory_client.wait_for_result()
@@ -1227,25 +1292,25 @@ class ControllerSwitcher:
         self.mask_data = None
         sub = rospy.Subscriber(f"/sam2_mask/{obj_name}", Image, self._mask_callback)
 
-        # Visual servo tuning
-        gain_xy = 0.00100
-        max_xy_step_m = 0.025
-        forward_step_m = 0.010
-        deadzone_ratio = 1.0 / 3.0
-        stop_px = 12
-
-        # joint7(=wrist) drift suppression by TCP yaw only
-        q7_target = 0.0
-        q7_deadband = np.deg2rad(2.0)
-        k_yaw = 0.18
-        max_yaw_step = np.deg2rad(0.8)
-        max_yaw_total = np.deg2rad(20.0)
+        zoom_cfg = {
+            'gain_xy': 0.00100,
+            'max_xy_step_m': 0.025,
+            'forward_step_m': 0.010,
+            'deadzone_ratio': 1.0 / 3.0,
+            'stop_px': 12,
+            'q7_target': 0.0,
+            'q7_deadband': np.deg2rad(2.0),
+            'k_yaw': 0.18,
+            'max_yaw_step': np.deg2rad(0.8),
+            'max_yaw_total': np.deg2rad(20.0),
+            'stable_required': 4,
+            'rate_hz': 45,
+        }
 
         stable_frames = 0
-        stable_required = 4
         yaw_offset = 0.0
         q_lock = None
-        rate = rospy.Rate(45)
+        rate = rospy.Rate(zoom_cfg['rate_hz'])
 
         self.pose_pub = rospy.Publisher('/cartesian_pose_controller/tcp_target_pose', PoseStamped, queue_size=1)
 
@@ -1257,7 +1322,7 @@ class ControllerSwitcher:
 
                 try:
                     tcp_tf = self.tf_buffer.lookup_transform(self.base_frame, self.tcp_frame, rospy.Time(0))
-                    cam_tf = self.tf_buffer.lookup_transform(self.base_frame, "camera_link", rospy.Time(0))
+                    cam_tf = self.tf_buffer.lookup_transform(self.base_frame, CAMERA_FRAME, rospy.Time(0))
 
                     if q_lock is None:
                         q_lock = [
@@ -1283,8 +1348,8 @@ class ControllerSwitcher:
                     err_v = (h / 2.0 - v)
                     area_ratio = moments['m00'] / (h * w * 255.0)
 
-                    deadzone_u = w * deadzone_ratio * 0.5
-                    deadzone_v = h * deadzone_ratio * 0.5
+                    deadzone_u = w * zoom_cfg['deadzone_ratio'] * 0.5
+                    deadzone_v = h * zoom_cfg['deadzone_ratio'] * 0.5
 
                     # 중심 근처에서는 XY를 멈춰 불필요한 미세 진동 방지
                     if abs(err_u) < deadzone_u:
@@ -1292,11 +1357,11 @@ class ControllerSwitcher:
                     if abs(err_v) < deadzone_v:
                         err_v = 0.0
 
-                    d_x_cam = np.clip(err_u * gain_xy, -max_xy_step_m, max_xy_step_m)
-                    d_y_cam = np.clip(err_v * gain_xy, -max_xy_step_m, max_xy_step_m)
+                    d_x_cam = np.clip(err_u * zoom_cfg['gain_xy'], -zoom_cfg['max_xy_step_m'], zoom_cfg['max_xy_step_m'])
+                    d_y_cam = np.clip(err_v * zoom_cfg['gain_xy'], -zoom_cfg['max_xy_step_m'], zoom_cfg['max_xy_step_m'])
 
                     # XY와 Z를 동시에 제어: 면적이 부족하면 전진은 계속 수행
-                    d_z_cam = forward_step_m if area_ratio < target_area_ratio else 0.0
+                    d_z_cam = zoom_cfg['forward_step_m'] if area_ratio < target_area_ratio else 0.0
 
                     q_cam = [
                         cam_tf.transform.rotation.x,
@@ -1310,11 +1375,11 @@ class ControllerSwitcher:
 
                     q7 = self.get_latest_arm_joint('panda_joint7', timeout_sec=0.5)
                     if q7 is not None:
-                        q7_err = q7_target - q7
-                        if abs(q7_err) < q7_deadband:
+                        q7_err = zoom_cfg['q7_target'] - q7
+                        if abs(q7_err) < zoom_cfg['q7_deadband']:
                             q7_err = 0.0
-                        yaw_step = np.clip(k_yaw * q7_err, -max_yaw_step, max_yaw_step)
-                        yaw_offset = float(np.clip(yaw_offset + yaw_step, -max_yaw_total, max_yaw_total))
+                        yaw_step = np.clip(q7_err * zoom_cfg['k_yaw'], -zoom_cfg['max_yaw_step'], zoom_cfg['max_yaw_step'])
+                        yaw_offset = float(np.clip(yaw_offset + yaw_step, -zoom_cfg['max_yaw_total'], zoom_cfg['max_yaw_total']))
 
                     q_yaw = tft.quaternion_from_euler(0.0, 0.0, yaw_offset)
                     q_target = tft.quaternion_multiply(q_lock, q_yaw)
@@ -1332,7 +1397,11 @@ class ControllerSwitcher:
                     target_stamped.pose.orientation.w = q_target[3]
                     self.pose_pub.publish(target_stamped)
 
-                    reached = (abs(err_u) < stop_px and abs(err_v) < stop_px and area_ratio >= target_area_ratio)
+                    reached = (
+                        abs(err_u) < zoom_cfg['stop_px'] and
+                        abs(err_v) < zoom_cfg['stop_px'] and
+                        area_ratio >= target_area_ratio
+                    )
                     stable_frames = stable_frames + 1 if reached else 0
 
                     rospy.loginfo_throttle(
@@ -1341,7 +1410,7 @@ class ControllerSwitcher:
                         f"q7={q7 if q7 is not None else float('nan'):.3f} yaw_ofs={np.rad2deg(yaw_offset):.2f}deg"
                     )
 
-                    if stable_frames >= stable_required:
+                    if stable_frames >= zoom_cfg['stable_required']:
                         rospy.loginfo("Reached! (stable center + target area)")
                         break
 
@@ -1351,6 +1420,10 @@ class ControllerSwitcher:
                 rate.sleep()
         finally:
             sub.unregister()
+
+    # -----------------------
+    # Object Pose Operations
+    # -----------------------
 
     def select_object(self, obj_name):
         rospy.loginfo(f"Selecting target object: {obj_name}")
@@ -1412,93 +1485,88 @@ class ControllerSwitcher:
         self.pose_received = True
         rospy.loginfo("New pose received via callback.")
 
+    def _filter_outlier_poses(self, poses, threshold=0.03, min_fraction=0.5):
+        if len(poses) < 2:
+            return poses
+
+        positions = np.array([
+            [p.pose.position.x, p.pose.position.y, p.pose.position.z]
+            for p in poses
+        ])
+        median_pos = np.median(positions, axis=0)
+        distances = np.linalg.norm(positions - median_pos, axis=1)
+        filtered_indices = np.where(distances < threshold)[0]
+        min_count = max(1, int(np.ceil(len(poses) * min_fraction)))
+
+        if len(filtered_indices) < min_count:
+            rospy.logwarn("Too many outliers detected. Checking sensor stability...")
+            return poses
+
+        return [poses[i] for i in filtered_indices]
+
+    def _collect_object_poses_in_base(self, topic_name, num_samples=10, timeout_sec=10.0):
+        poses_in_base = []
+        start_time = rospy.Time.now()
+
+        rospy.loginfo(f"Collecting samples and transforming to {self.base_frame}...")
+        while len(poses_in_base) < num_samples:
+            if (rospy.Time.now() - start_time).to_sec() > timeout_sec:
+                rospy.logwarn("Timeout while collecting samples.")
+                break
+
+            try:
+                pose_msg = rospy.wait_for_message(topic_name, PoseStamped, timeout=0.1)
+                pose_base = self.tf_buffer.transform(pose_msg, self.base_frame, timeout=rospy.Duration(1.0))
+                poses_in_base.append(pose_base)
+                if len(poses_in_base) >= num_samples:
+                    poses_in_base = self._filter_outlier_poses(poses_in_base)
+                print(f"Collected {len(poses_in_base)}/{num_samples} samples...", end='\r')
+            except (rospy.ROSException, tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                continue
+
+        return poses_in_base
+
+    def _load_or_collect_fixed_pose(self, file_path, topic_name, num_samples=10, timeout_sec=10.0):
+        poses_in_base = self._collect_object_poses_in_base(topic_name, num_samples=num_samples, timeout_sec=timeout_sec)
+        if len(poses_in_base) >= num_samples:
+            avg_pose_dict = self.calculate_average_pose(poses_in_base)
+            self.save_pose_to_file(avg_pose_dict, file_path)
+            rospy.loginfo(f"Successfully saved base-link pose to {file_path}")
+            return avg_pose_dict
+
+        rospy.logwarn("Not enough real-time samples. Trying to load from file...")
+        if os.path.exists(file_path):
+            return self.load_pose_json(file_path)
+
+        rospy.logerr("No data available to fix pose.")
+        return None
+
     def fix_object_pose(self):
         rospy.loginfo(f"Fixing pose for object: {self.selected_object}")
-        file_path = os.path.join(self.fixed_pose_root, self.selected_object, 'current.json')
-
-        poses_in_base = []
+        file_path = os.path.join(self.fixed_pose_root, self.selected_object, CURRENT_POSE_FILENAME)
         topic_name = f"/object_pose/{self.selected_object}"
-        num_samples = 10
-        timeout = 10  # seconds
-        start_time = rospy.Time.now()
         try:
-            rospy.loginfo(f"Collecting samples and transforming to panda_link0...")
-            while poses_in_base.__len__() < num_samples:
-                try:
-                    if (rospy.Time.now() - start_time).to_sec() > timeout:
-                        rospy.logwarn("Timeout while collecting samples.")
-                        break
-                    # 1. FP 노드로부터 카메라 기준 포즈 수신
-                    msg = rospy.wait_for_message(topic_name, PoseStamped, timeout=0.1)
-                    
-                    # 2. 카메라 기준 포즈를 panda_link0(베이스) 기준으로 변환
-                    # transform_pose는 tf_buffer를 사용하여 자동으로 좌표 변환을 수행합니다.
-                    pose_base = self.tf_buffer.transform(msg, self.base_frame, timeout=rospy.Duration(1.0))
-                    poses_in_base.append(pose_base)
-                    # remove outliers based on distance from median
-                    if len(poses_in_base) >= num_samples:
-                        # 1. 위치 데이터 추출 (N, 3)
-                        positions = np.array([[p.pose.position.x, p.pose.position.y, p.pose.position.z] for p in poses_in_base])
-                        
-                        # 2. 중앙값 계산 (이상치에 강인함)
-                        median_pos = np.median(positions, axis=0)
-                        
-                        # 3. 각 샘플과 중앙값 사이의 거리 계산
-                        distances = np.linalg.norm(positions - median_pos, axis=1)
-                        
-                        # 4. 임계값 설정 (예: 3cm / 상황에 따라 0.02~0.05 조절 가능)
-                        threshold = 0.03 
-                        
-                        # 5. 거리 기반 필터링
-                        filtered_indices = np.where(distances < threshold)[0]
-                        
-                        # 필터링 후 데이터가 너무 적으면 threshold를 조금 완화하거나 그대로 진행
-                        if len(filtered_indices) < (num_samples // 2):
-                            rospy.logwarn("Too many outliers detected. Checking sensor stability...")
-                            # 필터링 결과가 너무 적으면 일단 수집을 더 진행하거나 
-                            # 현재까지의 원본 데이터 중 가장 중앙값에 가까운 것들 위주로 재선택
-                        
-                        # 필터링된 포즈 리스트 업데이트 (최종 샘플 수 충족 시 루프 종료)
-                        poses_in_base = [poses_in_base[i] for i in filtered_indices]
-                    
-                    print(f"Collected {len(poses_in_base)}/{num_samples} samples...", end='\r')
-                except (rospy.ROSException, tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                    continue
-            
-            # print(len(poses_in_base))
-            if len(poses_in_base) >= num_samples:
-                # 3. 베이스 기준 포즈들 평균 계산 및 저장
-                avg_pose_dict = self.calculate_average_pose(poses_in_base)
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                self.save_pose_to_file(avg_pose_dict, file_path)
-                rospy.loginfo(f"Successfully saved base-link pose to {file_path}")
-            else:
-                rospy.logwarn("Not enough real-time samples. Trying to load from file...")
-                if os.path.exists(file_path):
-                    with open(file_path, 'r') as f:
-                        avg_pose_dict = json.load(f)
-                else:
-                    rospy.logerr("No data available to fix pose.")
-                    return
-            # 5. FP 노드 대기 상태 전환
+            avg_pose_dict = self._load_or_collect_fixed_pose(file_path, topic_name)
+            if avg_pose_dict is None:
+                return
+
             self.fp_pub.publish("")
-                
-            # 4. Static TF 발행 (항상 베이스 기준)
+
             self.update_fixed_pose(
                 pose_data=avg_pose_dict,
                 parent_frame=self.base_frame,
                 child_frame=self.peg_frame_filtered
             )
 
-            # Pre-grasp, Grasp 자세 계산
-            # if (self.selected_object == self.peg_name):
-            #     self.update_grasp_pose(self.peg_name, self.peg_frame_filtered)
-
             self.publish_all_static_tfs()
             rospy.loginfo(f"Fixed pose for {self.selected_object} established on panda_link0.")
 
         except Exception as e:
             rospy.logerr(f"Error in fix_object_pose: {e}")
+
+    # --------------------
+    # Grasp And Frame Data
+    # --------------------
 
     def update_grasp_pose(self, obj_name, parent_frame):
         grasp_pose = self.get_grasp_pose(obj_name)
@@ -1570,15 +1638,10 @@ class ControllerSwitcher:
         }
 
     def save_pose_to_file(self, pose_data, file_path):
-        with open(file_path, 'w') as f:
-            json.dump(pose_data, f, indent=4)
+        self._save_json(pose_data, file_path)
 
     def load_pose_json(self, file_path):
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-        if 'position' not in data or 'orientation' not in data:
-            raise ValueError(f"Invalid pose format in {file_path}")
-        return data
+        return self._load_pose_json(file_path)
 
     def get_grasp_pose(self, obj_name):
         grasp_path = os.path.join(self.fixed_pose_root, obj_name, 'grasp_tcp.json')
@@ -1654,23 +1717,7 @@ class ControllerSwitcher:
 
     def update_fixed_pose(self, pose_data, parent_frame, child_frame):
         """딕셔너리에 TF 정보를 등록하거나 업데이트합니다."""
-        t = TransformStamped()
-        t.header.stamp = rospy.Time.now()
-        t.header.frame_id = parent_frame
-        t.child_frame_id = child_frame
-
-        # position/orientation이 딕셔너리 형태인지 확인 후 대입
-        if 'position' in pose_data:
-            t.transform.translation.x = pose_data['position']['x']
-            t.transform.translation.y = pose_data['position']['y']
-            t.transform.translation.z = pose_data['position']['z']
-            t.transform.rotation.x = pose_data['orientation']['x']
-            t.transform.rotation.y = pose_data['orientation']['y']
-            t.transform.rotation.z = pose_data['orientation']['z']
-            t.transform.rotation.w = pose_data['orientation']['w']
-        
-        # 관리용 딕셔너리에 저장 (키값을 child_frame으로 해야 중복 방지)
-        self.fixed_poses[child_frame] = t
+        self.fixed_poses[child_frame] = self._pose_dict_to_transform(parent_frame, child_frame, pose_data)
         rospy.loginfo(f"Pose updated for: {child_frame}")
 
     def publish_all_static_tfs(self):
@@ -1687,15 +1734,61 @@ class ControllerSwitcher:
         # 여기서는 단순히 로그만 출력합니다.
         rospy.loginfo("Trajectory generation logic should be implemented here.")
 
-    def approach(self):
-        # Approach를 호출할 때마다 pre-goal position noise를 재샘플링
-        self.update_goal_related_frames(with_noise=True)
-        self.publish_all_static_tfs()
+    def _apply_manual_pre_goal_noise(self, manual_pose_dict):
+        manual_pose_dict = copy.deepcopy(manual_pose_dict)
+        applied_pos_noise = False
+        applied_rot_noise = False
 
+        if (self.pre_goal_noise_mode or PRE_GOAL_NOISE_MODE).lower() != 'none':
+            manual_pose_dict = self.add_position_noise(manual_pose_dict)
+            applied_pos_noise = True
+
+        if (self.pre_goal_rot_noise_mode or PRE_GOAL_ROT_NOISE_MODE).lower() != 'none':
+            manual_pose_dict = self.add_orientation_noise(manual_pose_dict)
+            applied_rot_noise = True
+
+        return manual_pose_dict, applied_pos_noise, applied_rot_noise
+
+    def _resolve_approach_target_pose(self):
+        requested_target = self.pre_goal_target
+
+        if requested_target == PRE_GOAL_TARGET_FROM_MANUAL:
+            manual_pose_dict = pre_goal_tcp_pose_dict.get(self.peg_name)
+            if manual_pose_dict is not None:
+                manual_pose_dict, applied_pos_noise, applied_rot_noise = self._apply_manual_pre_goal_noise(manual_pose_dict)
+                rospy.loginfo(
+                    f"Approach source=from_manual (peg={self.peg_name}, "
+                    f"position_noise={'on' if applied_pos_noise else 'off'}, "
+                    f"orientation_noise={'on' if applied_rot_noise else 'off'})"
+                )
+                return (
+                    self._pose_dict_to_pose_stamped(self.base_frame, manual_pose_dict).pose,
+                    f"manual pre_goal_tcp_pose_dict[{self.peg_name}]"
+                )
+
+            rospy.logwarn(
+                f"Approach source=from_manual requested but key '{self.peg_name}' "
+                "is missing in pre_goal_tcp_pose_dict. Falling back to from_video."
+            )
+
+        target_frame = self.pre_goal_tcp_frame
+        pre_goal_tcp_pose_stamped = self.get_pose_from_tf(target_frame)
+        if not pre_goal_tcp_pose_stamped:
+            rospy.logwarn(f"Failed to get target pose from TF: {target_frame}")
+            return None, None
+
+        rospy.loginfo(
+            f"Approach source=from_video"
+            f"{' (fallback)' if requested_target == PRE_GOAL_TARGET_FROM_MANUAL else ''}"
+        )
+        return pre_goal_tcp_pose_stamped.pose, target_frame
+
+    def _lift_tcp_for_approach(self):
         current_tcp_pose = self.get_current_tcp_pose()
         target_lift_z_base = 0.15
         if current_tcp_pose.position.z > target_lift_z_base:
             target_lift_z_base = 0.5 * (current_tcp_pose.position.z + target_lift_z_base)
+
         dz_to_lift = target_lift_z_base - current_tcp_pose.position.z
         if abs(dz_to_lift) > 0.001:
             self.move_tcp_xyz(dx=0, dy=0, dz=dz_to_lift)
@@ -1704,137 +1797,149 @@ class ControllerSwitcher:
                 f"Current TCP z ({current_tcp_pose.position.z:.3f}) is already at "
                 f"target lift z ({target_lift_z_base:.3f})."
             )
-        current_tcp_pose = self.get_current_tcp_pose()
 
-        target_pose = None
-        target_desc = ""
-        requested_target = self.pre_goal_target
-
-        if requested_target == PRE_GOAL_TARGET_FROM_MANUAL:
-            manual_pose_dict = pre_goal_tcp_pose_dict.get(self.peg_name)
-            if manual_pose_dict is not None:
-                manual_pose_dict = copy.deepcopy(manual_pose_dict)
-                applied_pos_noise = False
-                applied_rot_noise = False
-
-                if (self.pre_goal_noise_mode or PRE_GOAL_NOISE_MODE).lower() != 'none':
-                    manual_pose_dict = self.add_position_noise(manual_pose_dict)
-                    applied_pos_noise = True
-
-                if (self.pre_goal_rot_noise_mode or PRE_GOAL_ROT_NOISE_MODE).lower() != 'none':
-                    manual_pose_dict = self.add_orientation_noise(manual_pose_dict)
-                    applied_rot_noise = True
-
-                manual_pose_stamped = PoseStamped()
-                manual_pose_stamped.header.frame_id = self.base_frame
-                manual_pose_stamped.header.stamp = rospy.Time.now()
-                manual_pose_stamped.pose.position.x = manual_pose_dict['position']['x']
-                manual_pose_stamped.pose.position.y = manual_pose_dict['position']['y']
-                manual_pose_stamped.pose.position.z = manual_pose_dict['position']['z']
-                manual_pose_stamped.pose.orientation.x = manual_pose_dict['orientation']['x']
-                manual_pose_stamped.pose.orientation.y = manual_pose_dict['orientation']['y']
-                manual_pose_stamped.pose.orientation.z = manual_pose_dict['orientation']['z']
-                manual_pose_stamped.pose.orientation.w = manual_pose_dict['orientation']['w']
-                target_pose = manual_pose_stamped.pose
-                target_desc = f"manual pre_goal_tcp_pose_dict[{self.peg_name}]"
-                rospy.loginfo(
-                    f"Approach source=from_manual (peg={self.peg_name}, "
-                    f"position_noise={'on' if applied_pos_noise else 'off'}, "
-                    f"orientation_noise={'on' if applied_rot_noise else 'off'})"
-                )
-            else:
-                rospy.logwarn(
-                    f"Approach source=from_manual requested but key '{self.peg_name}' "
-                    "is missing in pre_goal_tcp_pose_dict. Falling back to from_video."
-                )
-
-        if target_pose is None:
-            # from_video 기본 경로 (또는 from_manual key miss fallback)
-            target_frame = self.pre_goal_tcp_frame
-            pre_goal_tcp_pose_stamped = self.get_pose_from_tf(target_frame)
-            if not pre_goal_tcp_pose_stamped:
-                rospy.logwarn(f"Failed to get target pose from TF: {target_frame}")
-                return False
-            target_pose = pre_goal_tcp_pose_stamped.pose
-            target_desc = target_frame
-            rospy.loginfo(
-                f"Approach source=from_video"
-                f"{' (fallback)' if requested_target == PRE_GOAL_TARGET_FROM_MANUAL else ''}"
-            )
-
-        rospy.loginfo(f"Moving {self.tcp_frame} to {target_desc} with XY-first strategy...")
+    def _move_xy_then_z(self, current_tcp_pose, target_pose):
         target_pose.orientation = self.normalize_quaternion(target_pose.orientation)
 
-        # Step 1) XY 먼저 정렬 (현재 Z 유지)
         xy_pose = copy.deepcopy(current_tcp_pose)
         xy_pose.position.x = target_pose.position.x
         xy_pose.position.y = target_pose.position.y
         xy_pose.orientation = target_pose.orientation
 
         rospy.loginfo("Step 1/2: Moving in XY plane (keep current Z)...")
-        plan_xy, fraction_xy = self.arm.compute_cartesian_path([xy_pose], 0.01, False)
-        if fraction_xy <= 0.9:
-            rospy.logwarn(f"Cartesian XY planning failed (Fraction: {fraction_xy})")
-            return False
-
-        plan_xy = self.arm.retime_trajectory(
-            self.arm.get_current_state(),
-            plan_xy,
+        if not self._compute_and_execute_cartesian_path(
+            [xy_pose],
             velocity_scaling_factor=0.3,
             acceleration_scaling_factor=0.1,
-            algorithm="time_optimal_trajectory_generation"
-        )
-        self.arm.execute(plan_xy, wait=True)
+            failure_log='Cartesian XY planning failed'
+        ):
+            return False
 
-        # Step 2) Z축으로만 하강 (XY 유지)
         current_after_xy = self.get_current_tcp_pose()
         z_pose = copy.deepcopy(current_after_xy)
         z_pose.position.z = target_pose.position.z
         z_pose.orientation = target_pose.orientation
 
         rospy.loginfo("Step 2/2: Descending along Z axis...")
-        plan_z, fraction_z = self.arm.compute_cartesian_path([z_pose], 0.01, False)
-        if fraction_z <= 0.9:
-            rospy.logwarn(f"Cartesian Z planning failed (Fraction: {fraction_z})")
-            return False
-
-        plan_z = self.arm.retime_trajectory(
-            self.arm.get_current_state(),
-            plan_z,
+        if not self._compute_and_execute_cartesian_path(
+            [z_pose],
             velocity_scaling_factor=0.2,
             acceleration_scaling_factor=0.08,
-            algorithm="time_optimal_trajectory_generation"
-        )
-        self.arm.execute(plan_z, wait=True)
+            failure_log='Cartesian Z planning failed'
+        ):
+            return False
+
+        return True
+
+    def approach(self):
+        # Approach를 호출할 때마다 pre-goal position noise를 재샘플링
+        self.update_goal_related_frames(with_noise=True)
+        self.publish_all_static_tfs()
+
+        self._lift_tcp_for_approach()
+        current_tcp_pose = self.get_current_tcp_pose()
+
+        target_pose, target_desc = self._resolve_approach_target_pose()
+        if target_pose is None:
+            return False
+
+        rospy.loginfo(f"Moving {self.tcp_frame} to {target_desc} with XY-first strategy...")
+        if not self._move_xy_then_z(current_tcp_pose, target_pose):
+            return False
+
         rospy.loginfo("Pre-Goal position reached.")
         return True
+
+    # -----------------
+    # UI And Commands
+    # -----------------
 
     def print_guide(self, current_mode):
         print("\n" + "="*50)
         print(f" [ CURRENT ACTIVE MODE: {MODE_DICT[current_mode]} ]")
         print("="*50)
-        print(" Press 'a': [MoveIt Mode]")
-        print(" Press 's': [Cartesian Impedance Mode]")
-        print(" Press 'd': [Cartesian Pose Mode]")
-        print(" Press 't': [Teleop Mode]")
-        print(" Press 'i': [Teleop Impedance Mode]")
-        print(" Press 'h': Select Hole as Target Object")
-        print(" Press 'p': Select Peg as Target Object")
-        print(" Press 'f': Register Frames")
-        print(" Press 'j': Select Hole Pose (current_x.json)")
-        print(" Press '0': Set Viewpoint Pose")
-        print(" Press '1': Move to Home")
-        print(" Press '2': Move to Viewpoint")
-        print(" Press '3': Zoom to Object")
-        print(" Press '4': Move to Pre-Grasp")
-        print(" Press '5': Move to Grasp")
-        print(" Press '6': Generate Trajectory")
-        print(" Press '7': Approach")
-        print(" Press '8': Insertion")
+        for key, guide_text in MODE_GUIDE_ITEMS:
+            print(f" Press '{key}': {guide_text}")
         print(" Press 'q': Quit and Shutdown Node")
         print("-" * 50)
         print(" (Also listening on topic: /set_controller_mode)")
         print(" >> Select Mode: ", end='', flush=True)
+
+    def _parse_peg_name(self, peg_input):
+        if peg_input.startswith("part"):
+            return peg_input
+        if peg_input == "11-2":
+            return "part11-2"
+
+        try:
+            peg_number = int(peg_input)
+        except ValueError:
+            return None
+
+        return f"part{peg_number}" if peg_number in PEG_LIST else None
+
+    def _handle_select_peg(self):
+        peg_input = input("Enter peg number/name (e.g. 11, 11-2, part12): ").strip()
+        peg_name = self._parse_peg_name(peg_input)
+        is_valid = peg_name in PEG_NAME_EXTRA or (
+            peg_name is not None and os.path.isdir(os.path.join(self.fixed_pose_root, peg_name))
+        )
+        if is_valid:
+            self.peg_name = peg_name
+            self.select_object(self.peg_name)
+            return
+
+        rospy.logwarn("Invalid peg input. Use one of [9, 11, 11-2, 12, 17] or part name.")
+
+    def _run_position_mode_action(self, action):
+        self.switch_controller(self.pos_controller)
+        rospy.sleep(0.5)
+        return action()
+
+    def _handle_zoom_to_object(self):
+        target_ratio = self.target_area_ratio.get(self.selected_object, self.target_area_ratio['part11'])
+        if self.selected_object not in self.target_area_ratio:
+            rospy.logwarn(f"No target_area_ratio for {self.selected_object}. Using fallback: {target_ratio}")
+
+        self.switch_controller(self.pose_controller)
+        rospy.sleep(0.5)
+        self.zoom_to_object(self.selected_object, target_ratio)
+
+    def _register_current_pose(self):
+        rospy.loginfo(f"Registering current averaged pose for: {self.selected_object}")
+        self.request_object_pose(self.selected_object)
+        self.fix_object_pose()
+        saved_path = os.path.join(self.fixed_pose_root, self.selected_object, 'current.json')
+        rospy.loginfo(f"Averaged pose registration complete: {saved_path}")
+
+    def _mode_handlers(self):
+        return {
+            MOVEIT: lambda: self.switch_controller(self.pos_controller),
+            CARTESIAN_IMPEDANCE: lambda: self.switch_controller(self.imp_controller),
+            CARTESIAN_POSE: lambda: self.switch_controller(self.pose_controller),
+            TELEOP: lambda: self.switch_controller(self.pose_controller),
+            TELEOP_IMPEDANCE: lambda: self.switch_controller(self.imp_controller),
+            OPEN_GRIPPER: self.open_gripper,
+            CLOSE_GRIPPER: self.close_gripper,
+            SELECT_HOLE: lambda: self.select_object(self.hole_name),
+            SELECT_HOLE_POSE: self.select_hole_pose_menu,
+            SELECT_PEG: self._handle_select_peg,
+            SET_VIEWPOINT: self.set_viewpoint_pose,
+            MOVE_TO_HOME: lambda: self._run_position_mode_action(self.move_to_home),
+            MOVE_TO_VIEWPOINT: lambda: self._run_position_mode_action(self.move_to_viewpoint),
+            ZOOM_TO_OBJECT: self._handle_zoom_to_object,
+            MOVE_TO_PRE_GRASP: lambda: self._run_position_mode_action(self.move_to_pre_grasp),
+            MOVE_TO_GRASP: lambda: self._run_position_mode_action(self.move_to_grasp),
+            GENERATE_TRAJECTORY: lambda: self._run_position_mode_action(self.generate_trajectory),
+            APPROACH: lambda: self._run_position_mode_action(self.approach),
+            INSERTION: self.start_insertion,
+            GRASPING: self.grasping,
+            REGISTER_FRAMES: self._register_current_pose,
+        }
+
+    # -----------------
+    # Motion Workflows
+    # -----------------
 
     def move_tcp_xyz(self, dx, dy, dz):
         """
@@ -1873,15 +1978,19 @@ class ControllerSwitcher:
         
     def grasping(self):
         # 1. 객체 자세 추정 요청
-        self.request_object_pose(self.selected_object)# ; self.fix_object_pose(self.selected_object)
+        self.request_object_pose(self.selected_object)
         # 2. Pre-Grasp 위치로 이동
-        self.switch_controller(self.pos_controller); self.move_to_pre_grasp()# ; self.request_object_pose(self.selected_object)
+        self.switch_controller(self.pos_controller)
+        self.move_to_pre_grasp()
         # 3. 객체 자세 Refinement 및 Fix
         self.fix_object_pose()
         # 4. Grasping 시도
-        self.move_to_pre_grasp(); self.move_to_grasp(); self.close_gripper()
+        self.move_to_pre_grasp()
+        self.move_to_grasp()
+        self.close_gripper()
         # 5. 객체 자세 재요청 및 잡힘 확인
-        self.request_object_pose(self.selected_object); rospy.sleep(0.5)
+        self.request_object_pose(self.selected_object)
+        rospy.sleep(0.5)
         if self.is_grasped:
             rospy.loginfo("Grasping successful!")
             self.approach()
@@ -1892,6 +2001,10 @@ class ControllerSwitcher:
             self.move_to_home()
             self.print_guide(self.mode)
 
+    # -----------------
+    # Main Event Loop
+    # -----------------
+
     def change_mode(self, key):
         if key is None: 
             return False
@@ -1899,78 +2012,14 @@ class ControllerSwitcher:
         if key != INSERTION:
             self.stop_insertion()
 
-        if   key == MOVEIT: # MoveIt Mode
-            self.switch_controller(self.pos_controller) 
-        elif key == CARTESIAN_IMPEDANCE: # Cartesian Impedance Mode
-            self.switch_controller(self.imp_controller) 
-        elif key == CARTESIAN_POSE: # Cartesian Pose Mode
-            self.switch_controller(self.pose_controller) 
-        elif key == TELEOP: # Teleop Mode
-            self.switch_controller(self.pose_controller)
-        elif key == TELEOP_IMPEDANCE:# Teleop Impedance Mode
-            self.switch_controller(self.imp_controller) 
-        elif key == OPEN_GRIPPER: # Open Gripper
-            self.open_gripper()
-        elif key == CLOSE_GRIPPER: # Close Gripper
-            self.close_gripper()
-        elif key == 'q': # Quit
+        if key == 'q':
             self.stop_insertion()
-            return rospy.signal_shutdown("User requested shutdown.") 
-        elif key == SELECT_HOLE: # Select Hole
-            self.select_object(self.hole_name); 
-        elif key == SELECT_HOLE_POSE: # Select Hole Pose
-            self.select_hole_pose_menu()
-        elif key == SELECT_PEG: # Select Peg
-            # get peg number from keyboard input
-            peg_input = input("Enter peg number/name (e.g. 11, 11-2, part12): ").strip()
-            if peg_input.startswith("part"):
-                peg_name = peg_input
-            elif peg_input == "11-2":
-                peg_name = "part11-2"
-            else:
-                try:
-                    peg_number = int(peg_input)
-                    peg_name = f"part{peg_number}" if peg_number in PEG_LIST else None
-                except ValueError:
-                    peg_name = None
+            return rospy.signal_shutdown("User requested shutdown.")
 
-            is_valid = peg_name in PEG_NAME_EXTRA or (
-                peg_name is not None and os.path.isdir(os.path.join(self.fixed_pose_root, peg_name))
-            )
-            if is_valid:
-                self.peg_name = peg_name
-                self.select_object(self.peg_name)
-            else:
-                rospy.logwarn("Invalid peg input. Use one of [9, 11, 11-2, 12, 17] or part name.")
-        elif key == SET_VIEWPOINT: # Set Viewpoint Pose
-            self.set_viewpoint_pose() 
-        elif key == MOVE_TO_HOME: # Move to Home
-            self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.move_to_home()
-        elif key == MOVE_TO_VIEWPOINT: # Move to Viewpoint
-            self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.move_to_viewpoint()
-        elif key == ZOOM_TO_OBJECT: # Zoom to Object
-            target_ratio = self.target_area_ratio.get(self.selected_object, self.target_area_ratio['part11'])
-            if self.selected_object not in self.target_area_ratio:
-                rospy.logwarn(f"No target_area_ratio for {self.selected_object}. Using fallback: {target_ratio}")
-            self.switch_controller(self.pose_controller); rospy.sleep(0.5); self.zoom_to_object(self.selected_object, target_ratio);
-        elif key == MOVE_TO_PRE_GRASP: # Move to Pre-Grasp
-            self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.move_to_pre_grasp()
-        elif key == MOVE_TO_GRASP: # Move to Grasp
-            self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.move_to_grasp()
-        elif key == GENERATE_TRAJECTORY: # Generate Trajectory
-            self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.generate_trajectory()
-        elif key == APPROACH: # Approach
-            self.switch_controller(self.pos_controller); rospy.sleep(0.5); self.approach()
-        elif key == INSERTION: # Insertion
-            self.start_insertion()
-        elif key == GRASPING: # Grasping
-            self.grasping()
-        elif key == REGISTER_FRAMES: # Register Frames
-            rospy.loginfo(f"Registering current averaged pose for: {self.selected_object}")
-            self.request_object_pose(self.selected_object)
-            self.fix_object_pose()
-            saved_path = os.path.join(self.fixed_pose_root, self.selected_object, 'current.json')
-            rospy.loginfo(f"Averaged pose registration complete: {saved_path}")
+        handler = self._mode_handlers().get(key)
+        if handler is not None:
+            handler()
+
         self.mode = key
         return True
 
