@@ -24,3 +24,5 @@ share/catkin_ws/src/.vscode/
 share/CameraCalib
 
 share/catkin_ws/src/franka_interface/launch/franka_visualization.rviz
+
+share/catkin_ws/src/bag_file/

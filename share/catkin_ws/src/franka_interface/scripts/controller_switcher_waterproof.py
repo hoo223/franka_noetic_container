@@ -52,8 +52,8 @@ GENERATE_TRAJECTORY = '6'
 APPROACH = '7'
 INSERTION = '8'
 
-PEG_LIST = [9, 11, 12, 17]
-PEG_NAME_EXTRA = ["part11-2"]
+PEG_LIST = []
+PEG_NAME_EXTRA = ["nist_waterproof_male", "nist_waterproof_female"]
 
 MODE_DICT = {
     'a': 'MOVEIT',
@@ -82,64 +82,64 @@ MODE_DICT = {
 
 
 grasp_pose_dict = { # wrt peg object frame
-    "part7": { # wrt object_part7
-        # - Translation: [-0.026, -0.037, 0.000]
-        # - Rotation: in Quaternion [1.000, -0.001, 0.021, 0.008]
-        'position': {
-            'x': -0.026,
-            'y': -0.037,
-            'z': 0.000
-        },
-        'orientation': {
-            'x': 1.000,
-            'y': -0.001,
-            'z': 0.021,
-            'w': 0.008
-        }
-    },
-    "part9": { # wrt object_part9
-        # - Translation: [-0.003, -0.011, 0.015]
-        # - Rotation: in Quaternion [1.000, 0.007, 0.030, 0.003]
-        'position': {
-            'x': -0.003,
-            'y': -0.011,
-            'z': 0.015
-        },
-        'orientation': {
-            'x': 1.000,
-            'y': 0.007,
-            'z': 0.030,
-            'w': 0.003
-        }
-    },
-    "part11": { # wrt object_part11
-        'position': {
-            'x': 0.006,
-            'y': -0.002,
-            'z': 0.008
-        },
-        'orientation': {
-            'x': 1.000,
-            'y': -0.004,
-            'z': 0.003,
-            'w': -0.010
-        }
-    },
-    "part12": { # wrt object_part12
-        # - Translation: [-0.005, -0.001, 0.017]
-        # - Rotation: in Quaternion [-0.704, 0.710, 0.010, -0.000]
-        'position': {
-            'x': -0.005,
-            'y': -0.001,
-            'z': 0.017
-        },
-        'orientation': {
-            'x': -0.704,
-            'y': 0.710,
-            'z': 0.010,
-            'w': -0.000
-        }
-    }
+    # "part7": { # wrt object_part7
+    #     # - Translation: [-0.026, -0.037, 0.000]
+    #     # - Rotation: in Quaternion [1.000, -0.001, 0.021, 0.008]
+    #     'position': {
+    #         'x': -0.026,
+    #         'y': -0.037,
+    #         'z': 0.000
+    #     },
+    #     'orientation': {
+    #         'x': 1.000,
+    #         'y': -0.001,
+    #         'z': 0.021,
+    #         'w': 0.008
+    #     }
+    # },
+    # "part9": { # wrt object_part9
+    #     # - Translation: [-0.003, -0.011, 0.015]
+    #     # - Rotation: in Quaternion [1.000, 0.007, 0.030, 0.003]
+    #     'position': {
+    #         'x': -0.003,
+    #         'y': -0.011,
+    #         'z': 0.015
+    #     },
+    #     'orientation': {
+    #         'x': 1.000,
+    #         'y': 0.007,
+    #         'z': 0.030,
+    #         'w': 0.003
+    #     }
+    # },
+    # "part11": { # wrt object_part11
+    #     'position': {
+    #         'x': 0.006,
+    #         'y': -0.002,
+    #         'z': 0.008
+    #     },
+    #     'orientation': {
+    #         'x': 1.000,
+    #         'y': -0.004,
+    #         'z': 0.003,
+    #         'w': -0.010
+    #     }
+    # },
+    # "part12": { # wrt object_part12
+    #     # - Translation: [-0.005, -0.001, 0.017]
+    #     # - Rotation: in Quaternion [-0.704, 0.710, 0.010, -0.000]
+    #     'position': {
+    #         'x': -0.005,
+    #         'y': -0.001,
+    #         'z': 0.017
+    #     },
+    #     'orientation': {
+    #         'x': -0.704,
+    #         'y': 0.710,
+    #         'z': 0.010,
+    #         'w': -0.000
+    #     }
+    # }
 }
 
 dummy_camera_pose_dict = {
@@ -171,28 +171,23 @@ measured_goal_tcp_pose_dict = { # wrt panda_link0
 }
 
 pre_goal_tcp_pose_dict = { # wrt base frame (panda_link0)
-    "part17": {
-        "position": {
-            "x": 0.494,
-            "y": 0.033,
-            "z": 0.070
-        },
-        "orientation": {
-            "x": 0.945,
-            "y": -0.327,
-            "z": -0.024,
-            "w": 0.009
-        }
-    }
+    # "part17": {
+    #     "position": {
+    #         "x": 0.494,
+    #         "y": 0.033,
+    #         "z": 0.070
+    #     },
+    #     "orientation": {
+    #         "x": 0.945,
+    #         "y": -0.327,
+    #         "z": -0.024,
+    #         "w": 0.009
+    #     }
+    # }
 }
 
 goal_pose_path = {
-    "part9": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/20260201_214303_seq1_part9_part9_refined_final_pose.txt",
-    "part11": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/test4_20251030_151337_part11_refined_final_pose.txt",
-    "part11-2": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/20260201_214449_seq3_part11_2_part11_refined_final_pose.txt",
-    "part17": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/20260201_214643_seq6_part17_part17_refined_final_pose.txt",
-    # "part11": "/root/share/catkin_ws/src/franka_interface/scripts/fixed_pose/part11-2/grasp_tcp.json"
-    # "part11": "/root/share/catkin_ws/src/franka_interface/scripts/fixed_pose/part11/grasp_tcp.json"
+    "nist_waterproof_male": "/root/share/catkin_ws/src/demo_traj/data/refined_final_peg_pose/20260520_180044_nist_waterproof_male_refined_final_pose.txt",
 }
 
 POSE_FALLBACK_PEG = {
@@ -203,31 +198,23 @@ POSE_FALLBACK_PEG = {
 PRE_GRASP_OFFSET_Z = 0.07  # 7cm
 PRE_GOAL_OFFSET_Z = 0.03  # 5cm
 PRE_GOAL_OFFSET_Z_BY_PART = {
-    "part11": 0.03,
-    "part11-2": 0.04,
-    "part9": 0.04,
-    "part17": 0.03,
+    "nist_waterproof_male": 0.03,
 }
 GRIPPER_MAX_WIDTH = 0.0396 * 2
 
 # Pre-goal position noise configuration
 # mode: 'none', 'none', 'xy', 'z', 'custom'
 PRE_GOAL_NOISE_MODE = 'none'
-# PRE_GOAL_NOISE_RANGE_M = {
-#     'x': (-0.0025, 0.0025),
-#     'y': (-0.0025, 0.0025),
-#     'z': (-0.0025, 0.0025),
-# }
 PRE_GOAL_NOISE_RANGE_M = {
-    'x': (-0.005, 0.005),
-    'y': (-0.005, 0.005),
-    'z': (-0.005, 0.005),
+    'x': (-0.0025, 0.0025),
+    'y': (-0.0025, 0.0025),
+    'z': (-0.0025, 0.0025),
 }
 PRE_GOAL_NOISE_STEP_M = 0.0002
 
 # Pre-goal orientation noise configuration (RPY in degrees)
 # mode: 'none', 'rpy', 'roll', 'pitch', 'yaw', 'custom'
-PRE_GOAL_ROT_NOISE_MODE = 'rpy'
+PRE_GOAL_ROT_NOISE_MODE = 'none'
 PRE_GOAL_RPY_NOISE_RANGE_DEG = {
     'r': (-2, 2),
     'p': (-2, 2),
@@ -277,7 +264,7 @@ class ControllerSwitcher:
         self.base_frame = "panda_link0"
         self.tcp_frame = "panda_hand_tcp"
         self.fixed_pose_root = os.path.join(self.path, "fixed_pose")
-        self.hole_name = "part1"
+        self.hole_name = "nist_waterproof_female"
         self.hole_frame = "object_" + self.hole_name
         self.hole_pose_file = os.path.join(self.fixed_pose_root, self.hole_name, "current.json")
 
@@ -295,13 +282,8 @@ class ControllerSwitcher:
         rospy.loginfo(f"Pre-goal target source: {self.pre_goal_target}")
 
         self.target_area_ratio = {
-            'part1': 0.18,
-            'part7': 0.05,
-            'part9': 0.05,
-            'part11': 0.03,
-            'part11-2': 0.03,
-            'part12': 0.03,
-            'part17': 0.01,
+            'nist_waterproof_male': 0.03,
+            'nist_waterproof_female': 0.03,
         }
 
         self.pre_goal_noise_mode = str(rospy.get_param('~pre_goal_noise_mode', PRE_GOAL_NOISE_MODE)).lower()
@@ -426,16 +408,14 @@ class ControllerSwitcher:
     def resolve_initial_selected_object(self, selected_object):
         candidate = selected_object
         if candidate is None:
-            candidate = rospy.get_param('~selected_object', 'part11')
+            candidate = rospy.get_param('~selected_object', 'nist_waterproof_male')
 
         candidate = str(candidate).strip()
         if not candidate:
-            return 'part11'
+            return 'nist_waterproof_male'
 
         if candidate.isdigit():
             candidate = f"part{candidate}"
-        elif candidate == '11-2':
-            candidate = 'part11-2'
 
         is_valid = (
             candidate == self.hole_name or
@@ -443,8 +423,8 @@ class ControllerSwitcher:
             os.path.isdir(os.path.join(self.fixed_pose_root, candidate))
         )
         if not is_valid:
-            rospy.logwarn(f"Invalid initial selected_object '{candidate}'. Fallback to 'part11'.")
-            return 'part11'
+            rospy.logwarn(f"Invalid initial selected_object '{candidate}'. Fallback to 'nist_waterproof_male'.")
+            return 'nist_waterproof_male'
 
         return candidate
 
@@ -699,7 +679,7 @@ class ControllerSwitcher:
         )
 
         pre_goal_grasp_pose = None
-        if self.tf_live_update_enabled and self.is_grasped and self.peg_name == 'part11':
+        if self.tf_live_update_enabled and self.is_grasped and self.peg_name == 'nist_waterproof_male':
             pre_goal_grasp_pose = self.get_live_grasp_pose_from_tf(self.peg_frame_filtered)
             if pre_goal_grasp_pose is not None:
                 rospy.loginfo(
@@ -1922,7 +1902,7 @@ class ControllerSwitcher:
             self.select_hole_pose_menu()
         elif key == SELECT_PEG: # Select Peg
             # get peg number from keyboard input
-            peg_input = input("Enter peg number/name (e.g. 11, 11-2, part12): ").strip()
+            peg_input = input("Enter peg number/name (e.g. 11, 11-2, part12, nist_waterproof_male): ").strip()
             if peg_input.startswith("part"):
                 peg_name = peg_input
             elif peg_input == "11-2":
@@ -1932,7 +1912,7 @@ class ControllerSwitcher:
                     peg_number = int(peg_input)
                     peg_name = f"part{peg_number}" if peg_number in PEG_LIST else None
                 except ValueError:
-                    peg_name = None
+                    peg_name = peg_input
 
             is_valid = peg_name in PEG_NAME_EXTRA or (
                 peg_name is not None and os.path.isdir(os.path.join(self.fixed_pose_root, peg_name))
@@ -1941,7 +1921,7 @@ class ControllerSwitcher:
                 self.peg_name = peg_name
                 self.select_object(self.peg_name)
             else:
-                rospy.logwarn("Invalid peg input. Use one of [9, 11, 11-2, 12, 17] or part name.")
+                rospy.logwarn("Invalid peg input. Use one of [9, 11, 11-2, 12, 17, nist_waterproof_male] or part name.")
         elif key == SET_VIEWPOINT: # Set Viewpoint Pose
             self.set_viewpoint_pose() 
         elif key == MOVE_TO_HOME: # Move to Home
@@ -1989,8 +1969,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--selected_object',
         type=str,
-        default='part9',
-        help='Initial target object (e.g. part11, 11, 11-2, part12, part1)'
+        default='nist_waterproof_male',
+        help='Initial target object (e.g. nist_waterproof_male, nist_waterproof_female)'
     )
     parser.add_argument(
         '--tf_live_update',
